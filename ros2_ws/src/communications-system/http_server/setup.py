@@ -20,6 +20,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            "http_server = http_server.http_server:main",
         ],
     },
 )

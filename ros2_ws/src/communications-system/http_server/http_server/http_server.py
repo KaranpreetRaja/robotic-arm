@@ -2,7 +2,6 @@ import asyncio
 import json
 import rclpy
 from rclpy.node import Node
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import threading

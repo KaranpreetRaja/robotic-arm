@@ -104,7 +104,10 @@ if __name__ == '__main__':
                 topic = message["topic"]
                 message = message["message"]  
                 
-                if topic and message:   
+                if topic and message: 
+                    if topic not in node.publishers:
+                        node.add_publisher(topic, String)
+                    
                     node.publish_message(topic, message)
 
         except WebSocketDisconnect:

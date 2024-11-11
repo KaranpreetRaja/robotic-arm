@@ -15,7 +15,7 @@ class HttpNode(Node):
         self.get_logger().info("HttpNode has been initialized")
 
         self.lock = threading.Lock()
-        self.publishers = {}
+        self._publishers = []
         self.service_clients = {}
         self.websocket_client = None
         self.subscribed_topics = [] # Add topics here
@@ -36,14 +36,18 @@ class HttpNode(Node):
     
     def add_publisher(self, topic_name, message_type):
         with self.lock:
-            self.publishers[topic_name] = self.create_publisher(message_type, topic_name, 10)
+            publisher = self.create_publisher(message_type, topic_name, 10)
+            self._publishers.append(publisher)  # Append to list
 
     def publish_message(self, topic_name, message):
         with self.lock:
-            if topic_name in self.publishers:
-                self.publishers[topic_name].publish(message)
-            else:
-                self.get_logger().warn("Publisher for topic %s not found", topic_name)
+            for publisher in self._publishers:
+                if publisher.topic_name == topic_name:
+                    msg = String()
+                    msg.data = message
+                    publisher.publish(msg)
+                    return
+            self.get_logger().warn("Publisher for topic %s not found", topic_name)
         
     
     def add_service_client(self, service_name, service_type):
@@ -62,20 +66,19 @@ class HttpNode(Node):
     
     async def send_to_client(self, topic, data):
         if self.websocket_client:
-            self.websocket_client.send_text(json.dumps({"topic": topic, "message": data}))
+            await self.websocket_client.send_text(json.dumps({"topic": topic, "message": data}))
         
 # Initialize the ROS node
 def init_ros_node():
     global node
     rclpy.init()
     node = HttpNode()
-    node.init_subscribers
+    node.init_subscribers()
     rclpy.spin(node)
     rclpy.shutdown()
 
 
-
-if __name__ == '__main__':
+def main(args=None):
     app = FastAPI()
     app.add_middleware(
         CORSMiddleware,
@@ -94,7 +97,7 @@ if __name__ == '__main__':
         return {"message": "Hello World"}
     
     @app.websocket("/ws")
-    async def websocket_endpoint(websocket):
+    async def websocket_endpoint(websocket: WebSocket):
         await websocket.accept()
         node.websocket_client = websocket
         try:
@@ -105,7 +108,7 @@ if __name__ == '__main__':
                 message = message["message"]  
                 
                 if topic and message: 
-                    if topic not in node.publishers:
+                    if not any(publisher.topic_name == topic for publisher in node._publishers):
                         node.add_publisher(topic, String)
                     
                     node.publish_message(topic, message)
@@ -115,5 +118,7 @@ if __name__ == '__main__':
 
     uvicorn.run(app, host="127.0.0.1", port=8080)
 
+    rclpy.shutdown()
 
-    
+if __name__ == '__main__':
+    main()

@@ -1,4 +1,4 @@
-name: Lint
+name: Lint via Ruff
 on: [push, pull_request]
 jobs:
   ruff:

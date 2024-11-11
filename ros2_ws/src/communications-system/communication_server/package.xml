@@ -3,8 +3,8 @@
 <package format="3">
   <name>communication_server</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
-  <maintainer email="86526687+KaranpreetRaja@users.noreply.github.com">karan</maintainer>
+  <description>This package runs a fast api app and allows for HTTP and websocket interfacing with ros2</description>
+  <maintainer email="karanpreet.singh.raja@gmail.com">Karanpreet Raja</maintainer>
   <license>GNU General Public License v3.0</license>
 
   <depend>rclpy</depend>

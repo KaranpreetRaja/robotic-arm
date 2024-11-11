@@ -14,8 +14,8 @@ setup(
     install_requires=['setuptools'],
     zip_safe=True,
     maintainer='karan',
-    maintainer_email='86526687+KaranpreetRaja@users.noreply.github.com',
-    description='TODO: Package description',
+    maintainer_email='karanpreet.singh.raja@gmail.com',
+    description='This package runs a fast api app and allows for HTTP and websocket interfacing with ros2',
     license='GNU General Public License v3.0',
     tests_require=['pytest'],
     entry_points={

@@ -40,7 +40,7 @@ class TestHttpNode(unittest.TestCase):
         
         # testing request constant urls
         cls.BASE_URL = "http://127.0.0.1:8080"
-        cls.WS_URL = "ws://127.0.0.1:8080/ws"
+        cls.WS_PUB_URL = "ws://127.0.0.1:8080/ws_publish"
         
         # wait for ros2 node to be initialized
         time.sleep(2)
@@ -54,13 +54,13 @@ class TestHttpNode(unittest.TestCase):
         self.test_node.received_messages.clear()
 
     async def websocket_connect(self):
-        websocket = await websockets.connect(self.WS_URL)
+        websocket = await websockets.connect(self.WS_PUB_URL)
         await asyncio.sleep(0.5)
         return websocket
 
     async def send_websocket_message(self, topic, message):
         """Send a message to the WebSocket server"""
-        async with websockets.connect(self.WS_URL) as websocket:
+        async with websockets.connect(self.WS_PUB_URL) as websocket:
             data = {
                 "topic": topic,
                 "message": message
@@ -70,7 +70,7 @@ class TestHttpNode(unittest.TestCase):
 
     def test_http_endpoint(self):
         """Test the basic HTTP endpoint"""
-        response = requests.get(f"{self.BASE_URL}/test")
+        response = requests.get(f"{self.BASE_URL}/admin/test")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"message": "Hello World"})
 
@@ -101,7 +101,7 @@ class TestHttpNode(unittest.TestCase):
             # Creates new HTTP session to modify node's subscribed_topics
             async with aiohttp.ClientSession() as session:
                 async with session.post(
-                    f"{self.BASE_URL}/add_subscription", 
+                    f"{self.BASE_URL}/admin/add_subscription", 
                     json={"topic": test_topic}
                 ) as response:
                     self.assertEqual(response.status, 200)

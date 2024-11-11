@@ -5,7 +5,7 @@ import json
 router = APIRouter()
 
 def get_node_manager():
-    from http_server.http_server import node_manager
+    from communication_server.communication_server import node_manager
     return node_manager
 
 @router.websocket("/ws_publish")

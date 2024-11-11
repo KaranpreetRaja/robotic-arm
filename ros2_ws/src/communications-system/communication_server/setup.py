@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-package_name = 'http_server'
+package_name = 'communication_server'
 
 setup(
     name=package_name,
@@ -13,14 +13,14 @@ setup(
     ],
     install_requires=['setuptools'],
     zip_safe=True,
-    maintainer='Karanpreet Raja',
+    maintainer='karan',
     maintainer_email='86526687+KaranpreetRaja@users.noreply.github.com',
-    description='Modular HTTP Communication Server that supports ros2 pub_sub and services',
-    license='TODO: License declaration',
+    description='TODO: Package description',
+    license='GNU General Public License v3.0',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            "http_server = http_server.http_server:main",
+            "communication_server = communication_server.communication_server:main",
         ],
     },
 )

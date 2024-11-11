@@ -1,11 +1,11 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>http_server</name>
+  <name>communication_server</name>
   <version>0.0.0</version>
-  <description>Modular HTTP Communication Server that supports ros2 pub_sub and services</description>
-  <maintainer email="86526687+KaranpreetRaja@users.noreply.github.com">Karanpreet Raja</maintainer>
-  <license>TODO: License declaration</license>
+  <description>TODO: Package description</description>
+  <maintainer email="86526687+KaranpreetRaja@users.noreply.github.com">karan</maintainer>
+  <license>GNU General Public License v3.0</license>
 
   <depend>rclpy</depend>
 

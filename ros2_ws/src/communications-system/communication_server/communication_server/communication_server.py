@@ -5,6 +5,7 @@ from rclpy.node import Node
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import threading
+from fastapi import FastAPI
 from std_msgs.msg import String
 from functools import partial
 from .routes import get_routers
@@ -13,7 +14,7 @@ from contextlib import asynccontextmanager
 # Global node_manager for access from routes
 node_manager = None
 
-class HttpNode(Node):
+class CommunicationNode(Node):
     def __init__(self):
         super().__init__('http_node')
         self.get_logger().info("HttpNode has been initialized")
@@ -99,7 +100,7 @@ class NodeManager:
 
     def init_ros_node(self):
         rclpy.init()
-        self.node = HttpNode()
+        self.node = CommunicationNode()
         self.node.init_subscribers()
         rclpy.spin(self.node)
         rclpy.shutdown()

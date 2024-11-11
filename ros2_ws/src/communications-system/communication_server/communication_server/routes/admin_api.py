@@ -5,7 +5,7 @@ from std_msgs.msg import String
 router = APIRouter()
 
 def get_node_manager():
-    from http_server.http_server import node_manager
+    from communication_server.communication_server import node_manager
     return node_manager
 
 @router.get("/test")

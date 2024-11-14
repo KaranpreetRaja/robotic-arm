@@ -36,7 +36,7 @@ export default function ArmModel({
         camera.position.z = 2;
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(1290, 700);
+        renderer.setSize(1250, 600);
         renderer.setClearColor(0xFFFFFF);
         containerRef.current.appendChild(renderer.domElement);
 
@@ -153,6 +153,6 @@ export default function ArmModel({
     }, [jvalue1, jvalue2, jvalue3, jvalue4, jvalue5, jvalue6, onEndEffectorMove]);
 
     return (
-        <div className='w-full h-96' ref={containerRef} />
+        <div className='w-full h-48' ref={containerRef} />
     );
 }

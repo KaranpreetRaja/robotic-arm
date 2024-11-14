@@ -24,12 +24,33 @@ function App() {
 
   return (
     <div className='h-screen w-screen bg-base flex flex-col'>
-      <div className='w-full h-2/5'>
-
+      <div className='w-full h-1/2 flex flex-row px-6 py-4 space-x-4'>
+        <div className='w-1/2 h-full bg-white flex justify-center items-center'>
+          Camera 1
+        </div>
+        <div className='w-1/2 h-full bg-white flex justify-center items-center'>
+          Camera 2
+        </div>
       </div>
-      <div className='w-full h-3/5 px-6 flex flex-row'>
+      <div className='w-full h-1/2 px-6 flex flex-row space-x-4'>
         <ArmModel jvalue1={value1} jvalue2={value2} jvalue3={value3} jvalue4={value4} jvalue5={value5} jvalue6={value6}
           onEndEffectorMove={handleEndEffectorMove} />
+        <div className='bg-[#333] w-full h-[600px] rounded-lg flex flex-col space-y-4 p-6'>
+          <button className='bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 text-2xl rounded-lg transition duration-300'>
+            Move Arm
+          </button>
+          <h1 className='text-white font-medium text-3xl mt-11'>Telemetry Data</h1>
+
+          <div className='bg-[#444] p-4 rounded-lg text-2xl space-y-2'>
+            <p className='text-white font-medium'>Data 1: <span className='text-gray-300'>xyz</span></p>
+            <p className='text-white font-medium'>Data 2: <span className='text-gray-300'>xyz</span></p>
+            <p className='text-white font-medium'>Data 3: <span className='text-gray-300'>xyz</span></p>
+            <p className='text-white font-medium'>Data 4: <span className='text-gray-300'>xyz</span></p>
+            <p className='text-white font-medium'>Data 5: <span className='text-gray-300'>xyz</span></p>
+            <p className='text-white font-medium'>Data 6: <span className='text-gray-300'>xyz</span></p>
+          </div>
+        </div>
+
         <div>
           <div className="controller-container-2">
             <div>

@@ -64,7 +64,7 @@ export default function ArmModel({ jvalue1, jvalue2, jvalue3, jvalue4, jvalue5, 
         renderer.setClearColor(0xFFFFFF);
         containerRef.current.appendChild(renderer.domElement);
         rendererRef.current = renderer;
-g
+
         const ambientLight = new THREE.AmbientLight(0x404040);
         scene.add(ambientLight);
 

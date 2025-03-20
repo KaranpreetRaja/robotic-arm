@@ -145,6 +145,10 @@ export default function ArmModel({ jvalue1, jvalue2, jvalue3, jvalue4, jvalue5, 
                             sphereRef.current.material.color.set(0x0088FF);
                         }
                     });
+
+                    dragControls.addEventListener('drag', (event) => {
+                        console.log(`Sphere Position: x=${sphere.position.x.toFixed(3)}, y=${sphere.position.y.toFixed(3)}, z=${sphere.position.z.toFixed(3)}`);
+                    });
                 }
             }, 100);
         },
@@ -167,9 +171,7 @@ export default function ArmModel({ jvalue1, jvalue2, jvalue3, jvalue4, jvalue5, 
         return () => {
             if (rendererRef.current) {
                 rendererRef.current.dispose();
-            }
-            if (containerRef.current && rendererRef.current) {
-                containerRef.current.removeChild(rendererRef.current.domElement);
+                containerRef.current?.removeChild(rendererRef.current.domElement);
             }
         };
     }, []);

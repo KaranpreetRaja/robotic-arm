@@ -24,8 +24,7 @@ export default function ArmModel({
     jvalue4, 
     jvalue5, 
     jvalue6,
-    onPoseChange
-}: JointInterface & { onPoseChange?: (pose: EndEffectorPose) => void }) {
+}: JointInterface) {
     const containerRef = useRef<HTMLDivElement>(null);
     const robotRef = useRef<any>(null);
     const targetRef = useRef<THREE.Group | null>(null);
@@ -35,6 +34,106 @@ export default function ArmModel({
     const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
     const orbitControlsRef = useRef<OrbitControls | null>(null);
     const [controlMode, setControlMode] = useState<'translate' | 'rotate'>('translate');
+    const [websocket, setWebsocket] = useState<WebSocket | null>(null);
+    const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connected' | 'error'>('disconnected');
+    const [currentPose, setCurrentPose] = useState<EndEffectorPose | null>(null);
+    const [continuousSend, setContinuousSend] = useState(false);
+    const [updateFrequency, setUpdateFrequency] = useState(10); // Hz
+    const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+    
+    useEffect(() => {
+        const ws = new WebSocket('ws://127.0.0.1:8080/ws');
+        
+        ws.onopen = () => {
+            console.log('WebSocket Connected');
+            setConnectionStatus('connected');
+        };
+        
+        ws.onclose = () => {
+            console.log('WebSocket Disconnected');
+            setConnectionStatus('disconnected');
+            setContinuousSend(false);
+        };
+        
+        ws.onerror = (error) => {
+            console.error('WebSocket Error:', error);
+            setConnectionStatus('error');
+            setContinuousSend(false);
+        };
+        
+        setWebsocket(ws);
+        
+        return () => {
+            ws.close();
+        };
+    }, []);
+
+   
+    useEffect(() => {
+       
+        if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+        }
+
+        
+        if (continuousSend && connectionStatus === 'connected' && currentPose) {
+            const intervalTime = Math.floor(1000 / updateFrequency); 
+            intervalRef.current = setInterval(() => {
+                sendPoseToServer();
+            }, intervalTime);
+            
+            console.log(`Started continuous pose updates at ${updateFrequency}Hz (${intervalTime}ms)`);
+        }
+
+        
+        return () => {
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+                intervalRef.current = null;
+            }
+        };
+    }, [continuousSend, connectionStatus, updateFrequency, currentPose]);
+
+    
+    const sendPoseToServer = () => {
+        if (!websocket || connectionStatus !== 'connected' || !currentPose) {
+            console.error('Cannot send pose: WebSocket not connected or pose not available');
+            return;
+        }
+        
+        
+        if (targetRef.current) {
+            const position = new THREE.Vector3();
+            targetRef.current.getWorldPosition(position);
+            
+            const rotation = new THREE.Euler().setFromQuaternion(targetRef.current.quaternion);
+            
+            
+            const poseData = {
+                position: {
+                    x: position.x.toFixed(4),
+                    y: position.y.toFixed(4),
+                    z: position.z.toFixed(4)
+                },
+                rotation: {
+                    x: rotation.x.toFixed(4),
+                    y: rotation.y.toFixed(4),
+                    z: rotation.z.toFixed(4)
+                }
+            };
+            
+            
+            const message = {
+                topic: "/robot/target_pose", 
+                message: JSON.stringify(poseData)
+            };
+            
+        
+            websocket.send(JSON.stringify(message));
+        }
+    };
 
     const getEndEffectorPosition = () => {
         if (!robotRef.current) return null;
@@ -91,12 +190,10 @@ export default function ArmModel({
         orbitControls.update();
         orbitControlsRef.current = orbitControls;
 
-        
         const targetGroup = new THREE.Group();
         targetRef.current = targetGroup;
         scene.add(targetGroup);
 
-        
         const sphereGeometry = new THREE.SphereGeometry(0.05, 32, 32);
         const sphereMaterial = new THREE.MeshStandardMaterial({ 
             color: 0x0088ff,
@@ -106,9 +203,7 @@ export default function ArmModel({
         const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
         targetGroup.add(sphere);
 
-        
         const axisLength = 0.1;
-        
         
         const xAxisGeometry = new THREE.CylinderGeometry(0.005, 0.005, axisLength);
         const xAxisMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
@@ -117,13 +212,11 @@ export default function ArmModel({
         xAxis.position.x = axisLength / 2;
         targetGroup.add(xAxis);
         
-        
         const yAxisGeometry = new THREE.CylinderGeometry(0.005, 0.005, axisLength);
         const yAxisMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
         const yAxis = new THREE.Mesh(yAxisGeometry, yAxisMaterial);
         yAxis.position.y = axisLength / 2;
         targetGroup.add(yAxis);
-        
         
         const zAxisGeometry = new THREE.CylinderGeometry(0.005, 0.005, axisLength);
         const zAxisMaterial = new THREE.MeshBasicMaterial({ color: 0x0000ff });
@@ -132,7 +225,6 @@ export default function ArmModel({
         zAxis.position.z = axisLength / 2;
         targetGroup.add(zAxis);
 
-      
         const transformControls = new TransformControls(camera, renderer.domElement);
         transformControls.attach(targetGroup);
         transformControls.setMode('translate');
@@ -140,23 +232,23 @@ export default function ArmModel({
         scene.add(transformControls);
         transformControlsRef.current = transformControls;
 
-        
         transformControls.addEventListener('dragging-changed', (event) => {
             if (orbitControlsRef.current) {
                 orbitControlsRef.current.enabled = !event.value;
             }
         });
 
-
         transformControls.addEventListener('objectChange', () => {
-            if (targetRef.current && onPoseChange) {
+            if (targetRef.current) {
                 const position = new THREE.Vector3();
                 targetRef.current.getWorldPosition(position);
                 
-                onPoseChange({
+                const pose: EndEffectorPose = {
                     position: position,
                     rotation: new THREE.Euler().setFromQuaternion(targetRef.current.quaternion)
-                });
+                };
+                
+                setCurrentPose(pose);
             }
         });
 
@@ -182,6 +274,11 @@ export default function ArmModel({
                 const endEffectorPosition = getEndEffectorPosition();
                 if (endEffectorPosition && targetRef.current) {
                     targetRef.current.position.copy(endEffectorPosition);
+                    
+                    setCurrentPose({
+                        position: new THREE.Vector3().copy(endEffectorPosition),
+                        rotation: new THREE.Euler().setFromQuaternion(targetRef.current.quaternion)
+                    });
                 }
             }, 100);
         },
@@ -190,7 +287,6 @@ export default function ArmModel({
             console.error('An error occurred while loading the URDF model:', error.message);
         });
 
-        
         const handleKeyDown = (event: KeyboardEvent) => {
             if (event.key === 'r' || event.key === 'R') {
                 if (transformControlsRef.current) {
@@ -202,6 +298,10 @@ export default function ArmModel({
                     transformControlsRef.current.setMode('translate');
                     setControlMode('translate');
                 }
+            } else if (event.key === 's' || event.key === 'S') {
+                sendPoseToServer();
+            } else if (event.key === 'c' || event.key === 'C') {
+                setContinuousSend(prev => !prev);
             }
         };
 
@@ -244,6 +344,112 @@ export default function ArmModel({
     return (
         <div className="flex flex-col">
             <div className='w-full h-48' ref={containerRef} />
+            <div className="mt-64 flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                    <div className={`w-3 h-3 rounded-full ${
+                        connectionStatus === 'connected' ? 'bg-green-500' : 
+                        connectionStatus === 'error' ? 'bg-red-500' : 'bg-gray-500'
+                    }`}></div>
+                    <span className="text-sm">
+                        WebSocket: {connectionStatus}
+                    </span>
+                </div>
+                
+                <div className="flex gap-2 flex-wrap">
+                    <button 
+                        onClick={() => {
+                            if (transformControlsRef.current) {
+                                transformControlsRef.current.setMode('translate');
+                                setControlMode('translate');
+                            }
+                        }}
+                        className={`px-3 py-1 text-sm rounded ${
+                            controlMode === 'translate' 
+                                ? 'bg-blue-600 text-white' 
+                                : 'bg-gray-200 text-gray-800'
+                        }`}
+                    >
+                        Position (T)
+                    </button>
+                    
+                    <button 
+                        onClick={() => {
+                            if (transformControlsRef.current) {
+                                transformControlsRef.current.setMode('rotate');
+                                setControlMode('rotate');
+                            }
+                        }}
+                        className={`px-3 py-1 text-sm rounded ${
+                            controlMode === 'rotate' 
+                                ? 'bg-blue-600 text-white' 
+                                : 'bg-gray-200 text-gray-800'
+                        }`}
+                    >
+                        Rotation (R)
+                    </button>
+                    
+                    <button 
+                        onClick={sendPoseToServer}
+                        disabled={connectionStatus !== 'connected' || !currentPose}
+                        className={`px-3 py-1 text-sm rounded ${
+                            connectionStatus === 'connected' && currentPose
+                                ? 'bg-green-600 text-white hover:bg-green-700' 
+                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        }`}
+                    >
+                        Send Once (S)
+                    </button>
+                    
+                    <button 
+                        onClick={() => setContinuousSend(!continuousSend)}
+                        disabled={connectionStatus !== 'connected' || !currentPose}
+                        className={`px-3 py-1 text-sm rounded ${
+                            connectionStatus === 'connected' && currentPose
+                                ? (continuousSend 
+                                    ? 'bg-red-600 text-white hover:bg-red-700'
+                                    : 'bg-green-600 text-white hover:bg-green-700')
+                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        }`}
+                    >
+                        {continuousSend ? 'Stop Streaming (C)' : 'Start Streaming (C)'}
+                    </button>
+                </div>
+                
+                {continuousSend && (
+                    <div className="flex items-center gap-2 mt-2">
+                        <span className="text-sm">Update Rate:</span>
+                        <input 
+                            type="range" 
+                            min="1" 
+                            max="30" 
+                            value={updateFrequency} 
+                            onChange={(e) => setUpdateFrequency(parseInt(e.target.value))}
+                            className="w-32"
+                        />
+                        <span className="text-sm font-mono">{updateFrequency} Hz</span>
+                    </div>
+                )}
+                
+                {currentPose && (
+                    <div className="mt-2 text-xs font-mono bg-gray-100 p-2 rounded">
+                        <div>Position: 
+                            x: {currentPose.position.x.toFixed(4)}, 
+                            y: {currentPose.position.y.toFixed(4)}, 
+                            z: {currentPose.position.z.toFixed(4)}
+                        </div>
+                        <div>Rotation: 
+                            x: {currentPose.rotation.x.toFixed(4)}, 
+                            y: {currentPose.rotation.y.toFixed(4)}, 
+                            z: {currentPose.rotation.z.toFixed(4)}
+                        </div>
+                        {continuousSend && (
+                            <div className="mt-1 text-green-600">
+                                Streaming data at {updateFrequency} Hz
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
         </div>
     );
 }

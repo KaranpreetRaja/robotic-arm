@@ -1,7 +1,7 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import URDFLoader from 'urdf-loader';
-import { OrbitControls, DragControls } from 'three-stdlib';
+import { OrbitControls, TransformControls } from 'three-stdlib';
 
 interface JointInterface {
     jvalue1: number;
@@ -12,14 +12,29 @@ interface JointInterface {
     jvalue6: number;
 }
 
-export default function ArmModel({ jvalue1, jvalue2, jvalue3, jvalue4, jvalue5, jvalue6 }: JointInterface) {
+interface EndEffectorPose {
+    position: THREE.Vector3;
+    rotation: THREE.Euler;
+}
+
+export default function ArmModel({ 
+    jvalue1, 
+    jvalue2, 
+    jvalue3, 
+    jvalue4, 
+    jvalue5, 
+    jvalue6,
+    onPoseChange
+}: JointInterface & { onPoseChange?: (pose: EndEffectorPose) => void }) {
     const containerRef = useRef<HTMLDivElement>(null);
     const robotRef = useRef<any>(null);
-    const sphereRef = useRef<THREE.Mesh | null>(null);
+    const targetRef = useRef<THREE.Group | null>(null);
+    const transformControlsRef = useRef<TransformControls | null>(null);
     const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
     const sceneRef = useRef<THREE.Scene | null>(null);
     const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
     const orbitControlsRef = useRef<OrbitControls | null>(null);
+    const [controlMode, setControlMode] = useState<'translate' | 'rotate'>('translate');
 
     const getEndEffectorPosition = () => {
         if (!robotRef.current) return null;
@@ -76,6 +91,12 @@ export default function ArmModel({ jvalue1, jvalue2, jvalue3, jvalue4, jvalue5, 
         orbitControls.update();
         orbitControlsRef.current = orbitControls;
 
+        
+        const targetGroup = new THREE.Group();
+        targetRef.current = targetGroup;
+        scene.add(targetGroup);
+
+        
         const sphereGeometry = new THREE.SphereGeometry(0.05, 32, 32);
         const sphereMaterial = new THREE.MeshStandardMaterial({ 
             color: 0x0088ff,
@@ -83,9 +104,61 @@ export default function ArmModel({ jvalue1, jvalue2, jvalue3, jvalue4, jvalue5, 
             opacity: 0.7
         });
         const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-        sphere.position.set(0, 0, 0);
-        sphereRef.current = sphere;
-        scene.add(sphere);
+        targetGroup.add(sphere);
+
+        
+        const axisLength = 0.1;
+        
+        
+        const xAxisGeometry = new THREE.CylinderGeometry(0.005, 0.005, axisLength);
+        const xAxisMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+        const xAxis = new THREE.Mesh(xAxisGeometry, xAxisMaterial);
+        xAxis.rotation.z = Math.PI / 2;
+        xAxis.position.x = axisLength / 2;
+        targetGroup.add(xAxis);
+        
+        
+        const yAxisGeometry = new THREE.CylinderGeometry(0.005, 0.005, axisLength);
+        const yAxisMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+        const yAxis = new THREE.Mesh(yAxisGeometry, yAxisMaterial);
+        yAxis.position.y = axisLength / 2;
+        targetGroup.add(yAxis);
+        
+        
+        const zAxisGeometry = new THREE.CylinderGeometry(0.005, 0.005, axisLength);
+        const zAxisMaterial = new THREE.MeshBasicMaterial({ color: 0x0000ff });
+        const zAxis = new THREE.Mesh(zAxisGeometry, zAxisMaterial);
+        zAxis.rotation.x = Math.PI / 2;
+        zAxis.position.z = axisLength / 2;
+        targetGroup.add(zAxis);
+
+      
+        const transformControls = new TransformControls(camera, renderer.domElement);
+        transformControls.attach(targetGroup);
+        transformControls.setMode('translate');
+        transformControls.setSize(0.75);
+        scene.add(transformControls);
+        transformControlsRef.current = transformControls;
+
+        
+        transformControls.addEventListener('dragging-changed', (event) => {
+            if (orbitControlsRef.current) {
+                orbitControlsRef.current.enabled = !event.value;
+            }
+        });
+
+
+        transformControls.addEventListener('objectChange', () => {
+            if (targetRef.current && onPoseChange) {
+                const position = new THREE.Vector3();
+                targetRef.current.getWorldPosition(position);
+                
+                onPoseChange({
+                    position: position,
+                    rotation: new THREE.Euler().setFromQuaternion(targetRef.current.quaternion)
+                });
+            }
+        });
 
         const manager = new THREE.LoadingManager();
         const loader = new URDFLoader(manager);
@@ -107,44 +180,8 @@ export default function ArmModel({ jvalue1, jvalue2, jvalue3, jvalue4, jvalue5, 
             
             setTimeout(() => {
                 const endEffectorPosition = getEndEffectorPosition();
-                if (endEffectorPosition && sphereRef.current) {
-                    sphereRef.current.position.copy(endEffectorPosition);
-                }
-                
-                if (sphereRef.current && cameraRef.current && rendererRef.current) {
-                    const dragControls = new DragControls(
-                        [sphereRef.current], 
-                        cameraRef.current, 
-                        rendererRef.current.domElement
-                    );
-                    
-                    dragControls.addEventListener('dragstart', () => {
-                        if (orbitControlsRef.current) {
-                            orbitControlsRef.current.enabled = false;
-                        }
-                    });
-                    
-                    dragControls.addEventListener('dragend', () => {
-                        if (orbitControlsRef.current) {
-                            orbitControlsRef.current.enabled = true;
-                        }
-                    });
-                    
-                    dragControls.addEventListener('hoveron', () => {
-                        if (sphereRef.current) {
-                            document.body.style.cursor = 'pointer';
-                            sphereRef.current.material.opacity = 0.9;
-                            sphereRef.current.material.color.set(0x00AAFF);
-                        }
-                    });
-                    
-                    dragControls.addEventListener('hoveroff', () => {
-                        if (sphereRef.current) {
-                            document.body.style.cursor = 'auto';
-                            sphereRef.current.material.opacity = 0.7;
-                            sphereRef.current.material.color.set(0x0088FF);
-                        }
-                    });
+                if (endEffectorPosition && targetRef.current) {
+                    targetRef.current.position.copy(endEffectorPosition);
                 }
             }, 100);
         },
@@ -152,6 +189,23 @@ export default function ArmModel({ jvalue1, jvalue2, jvalue3, jvalue4, jvalue5, 
         error => {
             console.error('An error occurred while loading the URDF model:', error.message);
         });
+
+        
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'r' || event.key === 'R') {
+                if (transformControlsRef.current) {
+                    transformControlsRef.current.setMode('rotate');
+                    setControlMode('rotate');
+                }
+            } else if (event.key === 't' || event.key === 'T') {
+                if (transformControlsRef.current) {
+                    transformControlsRef.current.setMode('translate');
+                    setControlMode('translate');
+                }
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
 
         const animate = () => {
             requestAnimationFrame(animate);
@@ -165,6 +219,8 @@ export default function ArmModel({ jvalue1, jvalue2, jvalue3, jvalue4, jvalue5, 
         animate();
 
         return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            
             if (rendererRef.current) {
                 rendererRef.current.dispose();
             }
@@ -185,5 +241,9 @@ export default function ArmModel({ jvalue1, jvalue2, jvalue3, jvalue4, jvalue5, 
         robotRef.current.joints[`J6`].setJointValue(THREE.MathUtils.degToRad(jvalue6));
     }, [jvalue1, jvalue2, jvalue3, jvalue4, jvalue5, jvalue6]);
 
-    return <div className='w-full h-48' ref={containerRef} />;
+    return (
+        <div className="flex flex-col">
+            <div className='w-full h-48' ref={containerRef} />
+        </div>
+    );
 }

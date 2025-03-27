@@ -1,68 +1,85 @@
-:root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
-body {
+* {
+  padding: 0;
   margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
+  box-sizing: border-box;
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+.bar-control input[type="range"] {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 8px;
+  background: #4CAF50;
+  border-radius: 5px;
+  outline: none;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
 }
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
+.bar-control input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background-color: #fff;
+  border: 2px solid #4CAF50;
+  border-radius: 50%;
   cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+  transition: background-color 0.2s ease, transform 0.2s ease;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+.bar-control input[type="range"]::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background-color: #fff;
+  border: 2px solid #4CAF50;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+/* Hover and active styles for slider thumb */
+.bar-control input[type="range"]:hover {
+  opacity: 1;
+}
+
+.bar-control input[type="range"]::-webkit-slider-thumb:hover {
+  background-color: #4CAF50;
+  transform: scale(1.1);
+}
+
+.bar-control input[type="range"]::-moz-range-thumb:hover {
+  background-color: #4CAF50;
+  transform: scale(1.1);
+}
+
+.bar-max {
+  margin-left: 12px;
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #fff;
+}
+
+.controller-container-2 {
+  display: flex;
+  flex-direction: column;
+  width: 500px;
+  height: 600px;
+  background-color: #333;
+  border-radius: 8px;
+  padding: 16px 20px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.controller-container-2 > div {
+  margin-bottom: 20px;
+}
+
+.controller-container-2 .form-label {
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: bold;
 }

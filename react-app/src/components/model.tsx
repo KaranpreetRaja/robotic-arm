@@ -43,7 +43,7 @@ export default function ArmModel({
 
     
     useEffect(() => {
-        const ws = new WebSocket('ws://127.0.0.1:8080/ws');
+        const ws = new WebSocket('ws://127.0.0.1:8080/ws_publish');
         
         ws.onopen = () => {
             console.log('WebSocket Connected');

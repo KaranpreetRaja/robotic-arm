@@ -10,6 +10,8 @@ interface JointInterface {
     jvalue4: number;
     jvalue5: number;
     jvalue6: number;
+    websocket: any;
+    connectionStatus: any;
 }
 
 interface EndEffectorPose {
@@ -24,6 +26,8 @@ export default function ArmModel({
     jvalue4, 
     jvalue5, 
     jvalue6,
+    websocket,
+    connectionStatus
 }: JointInterface) {
     const containerRef = useRef<HTMLDivElement>(null);
     const robotRef = useRef<any>(null);
@@ -34,42 +38,12 @@ export default function ArmModel({
     const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
     const orbitControlsRef = useRef<OrbitControls | null>(null);
     const [controlMode, setControlMode] = useState<'translate' | 'rotate'>('translate');
-    const [websocket, setWebsocket] = useState<WebSocket | null>(null);
-    const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connected' | 'error'>('disconnected');
     const [currentPose, setCurrentPose] = useState<EndEffectorPose | null>(null);
     const [continuousSend, setContinuousSend] = useState(false);
     const [updateFrequency, setUpdateFrequency] = useState(10); // Hz
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-    
-    useEffect(() => {
-        const ws = new WebSocket('ws://127.0.0.1:8080/ws_publish');
-        
-        ws.onopen = () => {
-            console.log('WebSocket Connected');
-            setConnectionStatus('connected');
-        };
-        
-        ws.onclose = () => {
-            console.log('WebSocket Disconnected');
-            setConnectionStatus('disconnected');
-            setContinuousSend(false);
-        };
-        
-        ws.onerror = (error) => {
-            console.error('WebSocket Error:', error);
-            setConnectionStatus('error');
-            setContinuousSend(false);
-        };
-        
-        setWebsocket(ws);
-        
-        return () => {
-            ws.close();
-        };
-    }, []);
 
-   
     useEffect(() => {
        
         if (intervalRef.current) {
@@ -103,7 +77,6 @@ export default function ArmModel({
             return;
         }
         
-        
         if (targetRef.current) {
             const position = new THREE.Vector3();
             targetRef.current.getWorldPosition(position);
@@ -126,7 +99,7 @@ export default function ArmModel({
             
             
             const message = {
-                topic: "/robot/target_pose", 
+                topic: "/robot/raw/target_pose", 
                 message: JSON.stringify(poseData)
             };
             
@@ -344,13 +317,13 @@ export default function ArmModel({
     return (
         <div className="flex flex-col">
             <div className='w-full h-48' ref={containerRef} />
-            <div className="mt-64 flex flex-col gap-2">
+            <div className="mt-64 flex flex-col gap-2 ml-4">
                 <div className="flex items-center gap-2">
                     <div className={`w-3 h-3 rounded-full ${
                         connectionStatus === 'connected' ? 'bg-green-500' : 
                         connectionStatus === 'error' ? 'bg-red-500' : 'bg-gray-500'
                     }`}></div>
-                    <span className="text-sm">
+                    <span className="text-xl">
                         WebSocket: {connectionStatus}
                     </span>
                 </div>
@@ -431,13 +404,13 @@ export default function ArmModel({
                 )}
                 
                 {currentPose && (
-                    <div className="mt-2 text-xs font-mono bg-gray-100 p-2 rounded">
-                        <div>Position: 
+                    <div className="mt-2 text-xl font-mono bg-gray-100 p-2 rounded">
+                        <div>Sphere Position: 
                             x: {currentPose.position.x.toFixed(4)}, 
                             y: {currentPose.position.y.toFixed(4)}, 
                             z: {currentPose.position.z.toFixed(4)}
                         </div>
-                        <div>Rotation: 
+                        <div>Sphere Rotation: 
                             x: {currentPose.rotation.x.toFixed(4)}, 
                             y: {currentPose.rotation.y.toFixed(4)}, 
                             z: {currentPose.rotation.z.toFixed(4)}

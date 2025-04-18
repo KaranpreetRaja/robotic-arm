@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import ArmModel from './components/model'
 import * as THREE from 'three';
 import Form from 'react-bootstrap/Form';
@@ -10,17 +10,58 @@ function App() {
   const [value4, setValue4] = useState(0);
   const [value5, setValue5] = useState(0);
   const [value6, setValue6] = useState(0);
+  const [websocket, setWebsocket] = useState<WebSocket | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connected' | 'error'>('disconnected');
 
-  const handleEndEffectorMove = (position: THREE.Vector3) => {
-    fetch('your-ik-solver-endpoint', {
-      method: 'POST',
-      body: JSON.stringify({
-        x: position.x,
-        y: position.y,
-        z: position.z
-      })
-    });
-  };
+  useEffect(() => {
+    const ws = new WebSocket('ws://127.0.0.1:8080/ws_publish');
+
+    ws.onopen = () => {
+      console.log('WebSocket Connected');
+      setConnectionStatus('connected');
+    };
+
+    ws.onclose = () => {
+      console.log('WebSocket Disconnected');
+      setConnectionStatus('disconnected');
+    };
+
+    ws.onerror = (error) => {
+      console.error('WebSocket Error:', error);
+      setConnectionStatus('error');
+    };
+
+    setWebsocket(ws);
+
+    return () => {
+      ws.close();
+    };
+  }, []);
+
+  const sendJointAnglesToServer = () => {
+    if (!websocket || connectionStatus !== 'connected') {
+      console.error('Cannot send pose: WebSocket not connected or pose not available');
+      return;
+    }
+
+    const poseData = {
+      orientation: {
+        value1,
+        value2,
+        value3,
+        value4,
+        value5,
+        value6,
+      },
+    };
+
+    const message = {
+      topic: "/robot/raw/joint_angles",
+      message: JSON.stringify(poseData)
+    };
+
+    websocket.send(JSON.stringify(message));
+  }
 
   return (
     <div className='h-screen w-screen bg-base flex flex-col'>
@@ -34,11 +75,21 @@ function App() {
       </div>
       <div className='w-full h-1/2 px-6 flex flex-row space-x-4'>
         <ArmModel jvalue1={value1} jvalue2={value2} jvalue3={value3} jvalue4={value4} jvalue5={value5} jvalue6={value6}
-          onEndEffectorMove={handleEndEffectorMove} />
+          websocket={websocket} connectionStatus={connectionStatus} />
         <div className='bg-[#333] w-full h-[600px] rounded-lg flex flex-col space-y-4 p-6'>
-          <button className='bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 text-2xl rounded-lg transition duration-300'>
-            Move Arm
+          <button
+            onClick={sendJointAnglesToServer}
+            className='bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 text-2xl rounded-lg transition duration-300'>
+            Send Arm Orientation
           </button>
+          <div className="flex items-center gap-2">
+            <div className={`w-3 h-3 rounded-full ${connectionStatus === 'connected' ? 'bg-green-500' :
+                connectionStatus === 'error' ? 'bg-red-500' : 'bg-gray-500'
+              }`}></div>
+            <span className="text-2xl text-white">
+              WebSocket: {connectionStatus}
+            </span>
+          </div>
           <h1 className='text-white font-medium text-3xl mt-11'>Telemetry Data</h1>
 
           <div className='bg-[#444] p-4 rounded-lg text-2xl space-y-2'>
@@ -56,42 +107,42 @@ function App() {
             <div>
               <Form.Label>Arm Joint 1</Form.Label>
               <div className="bar-control">
-                <Form.Range min={-150} max={150} value={value1} onChange={e => setValue1(e.target.valueAsNumber)} />
+                <Form.Range min={-360} max={360} value={value1} onChange={e => setValue1(e.target.valueAsNumber)} />
                 <span className="bar-max">{value1} degrees</span>
               </div>
             </div>
             <div>
               <Form.Label>Arm Joint 2</Form.Label>
               <div className="bar-control">
-                <Form.Range min={-150} max={150} value={value2} onChange={e => setValue2(e.target.valueAsNumber)} />
+                <Form.Range min={-360} max={360} value={value2} onChange={e => setValue2(e.target.valueAsNumber)} />
                 <span className="bar-max">{value2} degrees</span>
               </div>
             </div>
             <div>
               <Form.Label>Arm Joint 3</Form.Label>
               <div className="bar-control">
-                <Form.Range min={-150} max={150} value={value3} onChange={e => setValue3(e.target.valueAsNumber)} />
+                <Form.Range min={-360} max={360} value={value3} onChange={e => setValue3(e.target.valueAsNumber)} />
                 <span className="bar-max">{value3} degrees</span>
               </div>
             </div>
             <div>
               <Form.Label>Arm Joint 4</Form.Label>
               <div className="bar-control">
-                <Form.Range min={-150} max={150} value={value4} onChange={e => setValue4(e.target.valueAsNumber)} />
+                <Form.Range min={-360} max={360} value={value4} onChange={e => setValue4(e.target.valueAsNumber)} />
                 <span className="bar-max">{value4} degrees</span>
               </div>
             </div>
             <div>
               <Form.Label>Arm Joint 5</Form.Label>
               <div className="bar-control">
-                <Form.Range min={-150} max={150} value={value5} onChange={e => setValue5(e.target.valueAsNumber)} />
+                <Form.Range min={-360} max={360} value={value5} onChange={e => setValue5(e.target.valueAsNumber)} />
                 <span className="bar-max">{value5} degrees</span>
               </div>
             </div>
             <div>
               <Form.Label>Arm Joint 6</Form.Label>
               <div className="bar-control">
-                <Form.Range min={-150} max={150} value={value6} onChange={e => setValue6(e.target.valueAsNumber)} />
+                <Form.Range min={-360} max={360} value={value6} onChange={e => setValue6(e.target.valueAsNumber)} />
                 <span className="bar-max">{value6} degrees</span>
               </div>
             </div>

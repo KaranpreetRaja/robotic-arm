@@ -1,0 +1,28 @@
+running egg_info
+writing ../../../build/communication_server/communication_server.egg-info/PKG-INFO
+writing dependency_links to ../../../build/communication_server/communication_server.egg-info/dependency_links.txt
+writing entry points to ../../../build/communication_server/communication_server.egg-info/entry_points.txt
+writing requirements to ../../../build/communication_server/communication_server.egg-info/requires.txt
+writing top-level names to ../../../build/communication_server/communication_server.egg-info/top_level.txt
+reading manifest file '../../../build/communication_server/communication_server.egg-info/SOURCES.txt'
+writing manifest file '../../../build/communication_server/communication_server.egg-info/SOURCES.txt'
+running build
+running build_py
+copying communication_server/communication_server.py -> /home/abdi/Documents/GitHub/robotic-arm/ros2_ws/build/communication_server/build/lib/communication_server
+copying communication_server/__init__.py -> /home/abdi/Documents/GitHub/robotic-arm/ros2_ws/build/communication_server/build/lib/communication_server
+copying communication_server/routes/admin_api.py -> /home/abdi/Documents/GitHub/robotic-arm/ros2_ws/build/communication_server/build/lib/communication_server/routes
+copying communication_server/routes/__init__.py -> /home/abdi/Documents/GitHub/robotic-arm/ros2_ws/build/communication_server/build/lib/communication_server/routes
+copying communication_server/routes/websocket.py -> /home/abdi/Documents/GitHub/robotic-arm/ros2_ws/build/communication_server/build/lib/communication_server/routes
+running install
+running install_lib
+copying /home/abdi/Documents/GitHub/robotic-arm/ros2_ws/build/communication_server/build/lib/communication_server/routes/websocket.py -> /home/abdi/Documents/GitHub/robotic-arm/ros2_ws/install/communication_server/lib/python3.10/site-packages/communication_server/routes
+byte-compiling /home/abdi/Documents/GitHub/robotic-arm/ros2_ws/install/communication_server/lib/python3.10/site-packages/communication_server/routes/websocket.py to websocket.cpython-310.pyc
+running install_data
+copying resource/communication_server -> /home/abdi/Documents/GitHub/robotic-arm/ros2_ws/install/communication_server/share/ament_index/resource_index/packages
+copying package.xml -> /home/abdi/Documents/GitHub/robotic-arm/ros2_ws/install/communication_server/share/communication_server
+running install_egg_info
+removing '/home/abdi/Documents/GitHub/robotic-arm/ros2_ws/install/communication_server/lib/python3.10/site-packages/communication_server-0.0.0-py3.10.egg-info' (and everything under it)
+Copying ../../../build/communication_server/communication_server.egg-info to /home/abdi/Documents/GitHub/robotic-arm/ros2_ws/install/communication_server/lib/python3.10/site-packages/communication_server-0.0.0-py3.10.egg-info
+running install_scripts
+Installing communication_server script to /home/abdi/Documents/GitHub/robotic-arm/ros2_ws/install/communication_server/lib/communication_server
+writing list of installed files to '/home/abdi/Documents/GitHub/robotic-arm/ros2_ws/build/communication_server/install.log'

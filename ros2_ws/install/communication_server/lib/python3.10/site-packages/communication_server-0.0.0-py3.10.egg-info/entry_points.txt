@@ -1,0 +1,2 @@
+[console_scripts]
+communication_server = communication_server.communication_server:main

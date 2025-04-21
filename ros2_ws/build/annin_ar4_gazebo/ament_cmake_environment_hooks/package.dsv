@@ -1,0 +1,4 @@
+source;share/annin_ar4_gazebo/local_setup.bash
+source;share/annin_ar4_gazebo/local_setup.dsv
+source;share/annin_ar4_gazebo/local_setup.sh
+source;share/annin_ar4_gazebo/local_setup.zsh

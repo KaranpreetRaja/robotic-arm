@@ -1,0 +1,15 @@
+/home/abdi/Documents/GitHub/robotic-arm/ros2_ws/install/annin_ar4_gazebo/share/annin_ar4_gazebo/launch/gazebo.launch.py
+/home/abdi/Documents/GitHub/robotic-arm/ros2_ws/install/annin_ar4_gazebo/share/annin_ar4_gazebo/worlds/empty.world
+/home/abdi/Documents/GitHub/robotic-arm/ros2_ws/install/annin_ar4_gazebo/share/ament_index/resource_index/package_run_dependencies/annin_ar4_gazebo
+/home/abdi/Documents/GitHub/robotic-arm/ros2_ws/install/annin_ar4_gazebo/share/ament_index/resource_index/parent_prefix_path/annin_ar4_gazebo
+/home/abdi/Documents/GitHub/robotic-arm/ros2_ws/install/annin_ar4_gazebo/share/annin_ar4_gazebo/environment/ament_prefix_path.dsv
+/home/abdi/Documents/GitHub/robotic-arm/ros2_ws/install/annin_ar4_gazebo/share/annin_ar4_gazebo/environment/path.dsv
+/home/abdi/Documents/GitHub/robotic-arm/ros2_ws/install/annin_ar4_gazebo/share/annin_ar4_gazebo/local_setup.bash
+/home/abdi/Documents/GitHub/robotic-arm/ros2_ws/install/annin_ar4_gazebo/share/annin_ar4_gazebo/local_setup.sh
+/home/abdi/Documents/GitHub/robotic-arm/ros2_ws/install/annin_ar4_gazebo/share/annin_ar4_gazebo/local_setup.zsh
+/home/abdi/Documents/GitHub/robotic-arm/ros2_ws/install/annin_ar4_gazebo/share/annin_ar4_gazebo/local_setup.dsv
+/home/abdi/Documents/GitHub/robotic-arm/ros2_ws/install/annin_ar4_gazebo/share/annin_ar4_gazebo/package.dsv
+/home/abdi/Documents/GitHub/robotic-arm/ros2_ws/install/annin_ar4_gazebo/share/ament_index/resource_index/packages/annin_ar4_gazebo
+/home/abdi/Documents/GitHub/robotic-arm/ros2_ws/install/annin_ar4_gazebo/share/annin_ar4_gazebo/cmake/annin_ar4_gazeboConfig.cmake
+/home/abdi/Documents/GitHub/robotic-arm/ros2_ws/install/annin_ar4_gazebo/share/annin_ar4_gazebo/cmake/annin_ar4_gazeboConfig-version.cmake
+/home/abdi/Documents/GitHub/robotic-arm/ros2_ws/install/annin_ar4_gazebo/share/annin_ar4_gazebo/package.xml

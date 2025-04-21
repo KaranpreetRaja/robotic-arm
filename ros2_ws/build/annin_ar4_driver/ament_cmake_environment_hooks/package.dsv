@@ -1,0 +1,4 @@
+source;share/annin_ar4_driver/local_setup.bash
+source;share/annin_ar4_driver/local_setup.dsv
+source;share/annin_ar4_driver/local_setup.sh
+source;share/annin_ar4_driver/local_setup.zsh

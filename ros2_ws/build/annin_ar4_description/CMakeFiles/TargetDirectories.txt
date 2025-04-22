@@ -1,9 +1,0 @@
-/home/abdi/Documents/GitHub/robotic-arm/ros2_ws/build/annin_ar4_description/CMakeFiles/uninstall.dir
-/home/abdi/Documents/GitHub/robotic-arm/ros2_ws/build/annin_ar4_description/CMakeFiles/annin_ar4_description_uninstall.dir
-/home/abdi/Documents/GitHub/robotic-arm/ros2_ws/build/annin_ar4_description/CMakeFiles/test.dir
-/home/abdi/Documents/GitHub/robotic-arm/ros2_ws/build/annin_ar4_description/CMakeFiles/edit_cache.dir
-/home/abdi/Documents/GitHub/robotic-arm/ros2_ws/build/annin_ar4_description/CMakeFiles/rebuild_cache.dir
-/home/abdi/Documents/GitHub/robotic-arm/ros2_ws/build/annin_ar4_description/CMakeFiles/list_install_components.dir
-/home/abdi/Documents/GitHub/robotic-arm/ros2_ws/build/annin_ar4_description/CMakeFiles/install.dir
-/home/abdi/Documents/GitHub/robotic-arm/ros2_ws/build/annin_ar4_description/CMakeFiles/install/local.dir
-/home/abdi/Documents/GitHub/robotic-arm/ros2_ws/build/annin_ar4_description/CMakeFiles/install/strip.dir

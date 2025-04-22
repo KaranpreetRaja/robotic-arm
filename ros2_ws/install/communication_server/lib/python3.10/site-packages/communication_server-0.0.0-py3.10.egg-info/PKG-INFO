@@ -1,8 +1,0 @@
-Metadata-Version: 2.1
-Name: communication_server
-Version: 0.0.0
-Summary: This package runs a fast api app and allows for HTTP and websocket interfacing with ros2
-Maintainer: karan
-Maintainer-email: karanpreet.singh.raja@gmail.com
-License: GNU General Public License v3.0
-Requires-Dist: setuptools

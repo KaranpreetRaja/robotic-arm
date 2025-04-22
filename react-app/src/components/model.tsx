@@ -10,7 +10,7 @@ interface JointInterface {
     jvalue4: number;
     jvalue5: number;
     jvalue6: number;
-    websocket: any;
+    websocketPub: any;
     connectionStatus: any;
 }
 
@@ -26,7 +26,7 @@ export default function ArmModel({
     jvalue4, 
     jvalue5, 
     jvalue6,
-    websocket,
+    websocketPub,
     connectionStatus
 }: JointInterface) {
     const containerRef = useRef<HTMLDivElement>(null);
@@ -72,7 +72,7 @@ export default function ArmModel({
 
     
     const sendPoseToServer = () => {
-        if (!websocket || connectionStatus !== 'connected' || !currentPose) {
+        if (!websocketPub || connectionStatus !== 'connected' || !currentPose) {
             console.error('Cannot send pose: WebSocket not connected or pose not available');
             return;
         }
@@ -104,7 +104,7 @@ export default function ArmModel({
             };
             
         
-            websocket.send(JSON.stringify(message));
+            websocketPub.send(JSON.stringify(message));
         }
     };
 

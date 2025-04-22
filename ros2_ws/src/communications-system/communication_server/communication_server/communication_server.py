@@ -18,67 +18,60 @@ class CommunicationNode(Node):
     def __init__(self):
         super().__init__('http_node')
         self.get_logger().info("HttpNode has been initialized")
-        
         self.lock = threading.Lock()
         self._publishers = []
         self.service_clients = {}
-        self.websocket_client = None
-        self.subscribed_topics = []  # TODO: create initialize list of subscribers
-        self.subscribers = [] # TODO: make this dynamic with a dynamic callback that can send to multiple websockets
+        self.publish_ws = None
+        self.subscribe_ws = None
+        self.subscribed_topics = []
+        self.subscribers = []
         self._message_queue = asyncio.Queue()
         self._background_tasks = set()
-        
+
+    ################## Methods for Adding Subscribers and Subcribing to Messages ##################
     def init_subscribers(self):
-        """Initialize subscribers for topics"""
-        # TODO: change the implementation to support adding subscribers dynamically
+        """Initialize subscribers for all topics in subscribed_topics"""
         for topic in set(self.subscribed_topics):
-            self.get_logger().info(f"subscribing to topic: {topic}")
-            self.subscribers.append(
-                self.create_subscription(
-                    String,
-                    topic,
-                    partial(self.message_callback, topic=topic),
-                    10,
-                )
+            self.get_logger().info(f"Subscribing to topic: {topic}")
+            sub = self.create_subscription(
+                String,
+                topic,
+                partial(self.message_callback, topic=topic),
+                10,
             )
+            self.subscribers.append(sub)
 
     def message_callback(self, message, topic):
-        """Synchronous callback that queues messages for async processing"""
-        if self.websocket_client:
-            self._message_queue.put_nowait({
-                "topic": topic,
-                "message": message.data
-            })
-    
+        """Synchronous callback: enqueue messages for async send"""
+        data = {"topic": topic, "message": message.data}
+        self._message_queue.put_nowait(data)
+
     async def process_message_queue(self):
-        """Async task to process queued messages"""
+        """Async task: pull from queue and send to subscriber websocket"""
         while True:
             try:
-                message = await self._message_queue.get()
-                if self.websocket_client:
-                    await self.websocket_client.send_text(json.dumps(message))
+                msg = await self._message_queue.get()
+                if self.subscribe_ws:
+                    await self.subscribe_ws.send_text(json.dumps(msg))
                 self._message_queue.task_done()
             except Exception as e:
-                self.get_logger().error(f"Error processing message: {str(e)}")
-            await asyncio.sleep(0.01)  # Prevent CPU spinning
-    
+                self.get_logger().error(f"Error sending message: {e}")
+            await asyncio.sleep(0.01)
 
-################## Methods for Adding Publishers and Publishing Messages ##################
+    ################## Methods for Adding Publishers and Publishing Messages ##################
     def add_publisher(self, topic_name, message_type):
         with self.lock:
-            publisher = self.create_publisher(message_type, topic_name, 10)
-            self._publishers.append(publisher)
-
+            pub = self.create_publisher(message_type, topic_name, 10)
+            self._publishers.append(pub)
+            
     def publish_message(self, topic_name, message):
         with self.lock:
-            for publisher in self._publishers:
-                if publisher.topic_name == topic_name:
-                    msg = String()
-                    msg.data = message
-                    publisher.publish(msg)
+            for pub in self._publishers:
+                if pub.topic_name == topic_name:
+                    msg = String(); msg.data = message; pub.publish(msg)
                     return
-            self.get_logger().warn("Publisher for topic %s not found", topic_name)
-
+            self.get_logger().warn(f"Publisher for {topic_name} not found")
+    
 ################## Methods for Adding Service Clients and Calling Services ##################    
     def add_service_client(self, service_name, service_type):
         with self.lock:

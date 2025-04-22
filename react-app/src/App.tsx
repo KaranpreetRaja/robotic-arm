@@ -10,36 +10,59 @@ function App() {
   const [value4, setValue4] = useState(0);
   const [value5, setValue5] = useState(0);
   const [value6, setValue6] = useState(0);
-  const [websocket, setWebsocket] = useState<WebSocket | null>(null);
-  const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connected' | 'error'>('disconnected');
+  const [websocketPub, setWebsocketPub] = useState<WebSocket | null>(null);
+  const [websocketSub, setWebsocketSub] = useState<WebSocket | null>(null);
+  const [pubConnectionStatus, pubSetConnectionStatus] = useState<'disconnected' | 'connected' | 'error'>('disconnected');
 
   useEffect(() => {
     const ws = new WebSocket('ws://127.0.0.1:8080/ws_publish');
 
     ws.onopen = () => {
       console.log('WebSocket Connected');
-      setConnectionStatus('connected');
+      pubSetConnectionStatus('connected');
     };
 
     ws.onclose = () => {
       console.log('WebSocket Disconnected');
-      setConnectionStatus('disconnected');
+      pubSetConnectionStatus('disconnected');
     };
 
     ws.onerror = (error) => {
       console.error('WebSocket Error:', error);
-      setConnectionStatus('error');
+      pubSetConnectionStatus('error');
     };
 
-    setWebsocket(ws);
+    setWebsocketPub(ws);
 
     return () => {
       ws.close();
     };
   }, []);
 
+  useEffect(() => {
+    const ws = new WebSocket('ws://127.0.0.1:8080/ws_sub');
+
+    ws.onmessage = (e) => {
+      const data = JSON.parse(e.data);
+      console.log(data)
+    };
+
+    setWebsocketSub(ws);
+
+    return () => {
+      ws.close();
+    };
+  }, []);
+
+  function test() {
+    const topic = "/test/testing";
+    if (websocketSub) {
+      websocketSub.send(JSON.stringify({ topic }));
+    }
+  }
+
   const sendJointAnglesToServer = () => {
-    if (!websocket || connectionStatus !== 'connected') {
+    if (!websocketPub || pubConnectionStatus !== 'connected') {
       console.error('Cannot send pose: WebSocket not connected or pose not available');
       return;
     }
@@ -60,7 +83,7 @@ function App() {
       message: JSON.stringify(poseData)
     };
 
-    websocket.send(JSON.stringify(message));
+    websocketPub.send(JSON.stringify(message));
   }
 
   return (
@@ -75,19 +98,20 @@ function App() {
       </div>
       <div className='w-full h-1/2 px-6 flex flex-row space-x-4'>
         <ArmModel jvalue1={value1} jvalue2={value2} jvalue3={value3} jvalue4={value4} jvalue5={value5} jvalue6={value6}
-          websocket={websocket} connectionStatus={connectionStatus} />
+          websocketPub={websocketPub} connectionStatus={pubConnectionStatus} />
         <div className='bg-[#333] w-full h-[600px] rounded-lg flex flex-col space-y-4 p-6'>
           <button
-            onClick={sendJointAnglesToServer}
+            // onClick={sendJointAnglesToServer}
+            onClick={test}
             className='bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 text-2xl rounded-lg transition duration-300'>
             Send Arm Orientation
           </button>
           <div className="flex items-center gap-2">
-            <div className={`w-3 h-3 rounded-full ${connectionStatus === 'connected' ? 'bg-green-500' :
-                connectionStatus === 'error' ? 'bg-red-500' : 'bg-gray-500'
+            <div className={`w-3 h-3 rounded-full ${pubConnectionStatus === 'connected' ? 'bg-green-500' :
+              pubConnectionStatus === 'error' ? 'bg-red-500' : 'bg-gray-500'
               }`}></div>
             <span className="text-2xl text-white">
-              WebSocket: {connectionStatus}
+              WebSocket: {pubConnectionStatus}
             </span>
           </div>
           <h1 className='text-white font-medium text-3xl mt-11'>Telemetry Data</h1>

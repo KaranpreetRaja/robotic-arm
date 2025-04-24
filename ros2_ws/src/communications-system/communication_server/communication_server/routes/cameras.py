@@ -2,6 +2,7 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from typing import Dict, Optional
 import json
 import asyncio
+import traceback
 from interfaces.srv import RequestStream, SetAnswer, AddIceCandidate, RemovePeer
 from interfaces.msg import WebRTCMessage
 from rclpy.callback_groups import ReentrantCallbackGroup
@@ -10,6 +11,7 @@ import rclpy
 from rclpy.task import Future
 from concurrent.futures import ThreadPoolExecutor
 import functools
+import requests
 
 router = APIRouter()
 
@@ -18,21 +20,44 @@ def get_node_manager():
     return node_manager
 
 def load_camera_config():
-    """Load camera configuration from JSON file"""
-    current_path = Path(__file__).resolve()
-    current_path_str = str(current_path)
-    ros2_ws_index = current_path_str.rfind("ros2_ws/")
-    if ros2_ws_index == -1:
-        raise FileNotFoundError("ros2_ws directory not found in the path.")
+    """Load camera configuration from ROS2 node via service call"""
+    node_manager = get_node_manager()
+    node = node_manager.node
     
-    base_path = current_path_str[:ros2_ws_index + len("ros2_ws/")]
-    config_path = Path(base_path).parent / 'cams' / 'cameras.json'
-    
-    if not config_path.exists():
-        raise FileNotFoundError(f"Configuration file not found: {config_path}")
-    
-    with open(config_path, 'r') as f:
-        return json.load(f)
+    try:
+        # First try to get camera servers through ROS2
+        camera_servers = {}
+        for camera_id, camera_info in node.camera_client.camera_servers.items():
+            camera_servers[camera_id] = {
+                "device_info": camera_info.get("device_info", {}),
+                "streams": camera_info.get("streams", {})
+            }
+        
+        # Then get the CAMERAS dictionary
+        cameras = node.camera_client.config.get("CAMERAS", {})
+        
+        return {
+            "CAMERAS": cameras,
+            "CAMERA_SERVERS": camera_servers
+        }
+    except Exception as e:
+        node.get_logger().error(f"Error loading camera config: {e}")
+        
+        # Fallback to config file if ROS2 approach fails
+        current_path = Path(__file__).resolve()
+        current_path_str = str(current_path)
+        ros2_ws_index = current_path_str.rfind("ros2_ws/")
+        if ros2_ws_index == -1:
+            raise FileNotFoundError("ros2_ws directory not found in the path.")
+        
+        base_path = current_path_str[:ros2_ws_index + len("ros2_ws/")]
+        config_path = Path(base_path).parent / 'cams' / 'cameras.json'
+        
+        if not config_path.exists():
+            raise FileNotFoundError(f"Configuration file not found: {config_path}")
+        
+        with open(config_path, 'r') as f:
+            return json.load(f)
 
 class WebRTCConnection:
     def __init__(self, websocket: WebSocket, peer_id: str):
@@ -161,6 +186,15 @@ async def handle_webrtc_message(websocket: WebSocket, connection: WebRTCConnecti
             'message': str(e)
         }))
 
+@router.get("/camera-status")
+async def get_camera_status():
+    """Get status of all camera servers"""
+    try:
+        camera_config = load_camera_config()
+        return camera_config
+    except Exception as e:
+        return {"error": str(e)}
+
 @router.websocket("/ws/camera-webrtc")
 async def webrtc_endpoint(websocket: WebSocket):
     await websocket.accept()
@@ -173,11 +207,17 @@ async def webrtc_endpoint(websocket: WebSocket):
     node = node_manager.node
     
     # Load camera config and send to client
-    camera_config = load_camera_config()
-    await websocket.send_text(json.dumps({
-        'type': 'camera-config',
-        'config': camera_config
-    }))
+    try:
+        camera_config = load_camera_config()
+        await websocket.send_text(json.dumps({
+            'type': 'camera-config',
+            'config': camera_config
+        }))
+    except Exception as e:
+        await websocket.send_text(json.dumps({
+            'type': 'error',
+            'message': f"Error loading camera configuration: {str(e)}"
+        }))
     
     # Subscribe to WebRTC messages for this peer
     def webrtc_message_callback(msg):
@@ -207,7 +247,14 @@ async def webrtc_endpoint(websocket: WebSocket):
             request = RemovePeer.Request()
             request.camera_id = camera_id
             request.peer_id = peer_id
-            await node.call_service('/camera/remove_peer', request)
+            
+            # Use a separate thread to call the service
+            loop = asyncio.get_event_loop()
+            await loop.run_in_executor(
+                None,
+                lambda: node.call_service('/camera/remove_peer', request)
+            )
+            
         node.destroy_subscription(subscriber)
         
     except Exception as e:
@@ -217,5 +264,15 @@ async def webrtc_endpoint(websocket: WebSocket):
             request = RemovePeer.Request()
             request.camera_id = camera_id
             request.peer_id = peer_id
-            await node.call_service('/camera/remove_peer', request)
+            
+            try:
+                # Use a separate thread to call the service
+                loop = asyncio.get_event_loop()
+                await loop.run_in_executor(
+                    None,
+                    lambda: node.call_service('/camera/remove_peer', request)
+                )
+            except:
+                pass
+                
         node.destroy_subscription(subscriber)

@@ -3,62 +3,51 @@ from rclpy.node import Node
 from interfaces.srv import RequestStream, SetAnswer, AddIceCandidate, RemovePeer
 from interfaces.msg import WebRTCMessage
 import json
+import requests
+import subprocess
+import time
+import threading
 import gi
 import os
 from pathlib import Path
 import asyncio
 from typing import Dict, Optional
 from concurrent.futures import ThreadPoolExecutor
-import threading
+import uuid
 
 # GStreamer imports
 gi.require_version('Gst', '1.0')
-gi.require_version('GstWebRTC', '1.0')
-gi.require_version('GstSdp', '1.0')
-from gi.repository import Gst, GstWebRTC, GstSdp, GLib
+from gi.repository import Gst, GLib
+
 class CameraStream:
-    def __init__(self, device_path: str, port: int, codec='vp8'):
-        self.device_path = device_path
-        self.port = port
-        self.codec = codec.lower()
+    def __init__(self, camera_id: str, rtsp_url: str):
+        self.camera_id = camera_id
+        self.rtsp_url = rtsp_url
         self.pipeline = None
         self.webrtc = None
         self.peer_connections = {}
         self.pipeline_ready = False
         self.error_message = None
-
-    def create_pipeline(self):
-        """Create and set up the GStreamer pipeline"""
-        try:
-            # Initialize GStreamer
+        
+        # Initialize GStreamer if needed
+        if not Gst.is_initialized():
             Gst.init(None)
-
-            # Create pipeline string based on codec
-            # Use MJPG format from camera for better performance
-            if self.codec == 'vp8':
-                pipeline_str = (
-                    f'v4l2src device={self.device_path} ! '
-                    'image/jpeg,width=640,height=480,framerate=30/1 ! '
-                    'jpegdec ! videoconvert ! videoscale ! '
-                    'video/x-raw,format=YUY2,width=640,height=480 ! '
-                    'vp8enc deadline=1 cpu-used=4 target-bitrate=2000000 error-resilient=true ! '
-                    'rtpvp8pay ! '
-                    'webrtcbin name=webrtc bundle-policy=max-bundle stun-server=stun://stun.l.google.com:19302'
-                )
-            else:  # h264
-                pipeline_str = (
-                    f'v4l2src device={self.device_path} ! '
-                    'image/jpeg,width=640,height=480,framerate=30/1 ! '
-                    'jpegdec ! videoconvert ! videoscale ! '
-                    'video/x-raw,format=YUY2,width=640,height=480 ! '
-                    'x264enc tune=zerolatency speed-preset=ultrafast key-int-max=30 '
-                    'bitrate=2000 threads=4 ! '
-                    'video/x-h264,stream-format=byte-stream,profile=baseline ! '
-                    'h264parse ! '
-                    'rtph264pay config-interval=1 ! '
-                    'webrtcbin name=webrtc bundle-policy=max-bundle stun-server=stun://stun.l.google.com:19302'
-                )
-
+    
+    def create_pipeline(self):
+        """Create and set up the GStreamer pipeline to receive RTSP stream and offer WebRTC"""
+        try:
+            # Pipeline to receive RTSP and prepare for WebRTC
+            pipeline_str = (
+                f'rtspsrc location={self.rtsp_url} latency=0 ! '
+                'rtph264depay ! h264parse ! '
+                'avdec_h264 ! videoconvert ! videoscale ! '
+                'video/x-raw,format=I420,width=640,height=480 ! '
+                'tee name=t ! '
+                'queue ! vp8enc deadline=1 cpu-used=4 target-bitrate=2000000 ! '
+                'rtpvp8pay ! '
+                'webrtcbin name=webrtc bundle-policy=max-bundle stun-server=stun://stun.l.google.com:19302'
+            )
+            
             print(f"Creating pipeline with string: {pipeline_str}")
             
             # Create pipeline from string
@@ -75,28 +64,6 @@ class CameraStream:
             self.webrtc.connect('on-negotiation-needed', self.on_negotiation_needed)
             self.webrtc.connect('on-ice-candidate', self.on_ice_candidate)
 
-            # Add debugging probes
-            def on_buffer_probe(pad, info):
-                buffer = info.get_buffer()
-                print(f"Buffer flowing through {pad.get_parent_element().get_name()}, size: {buffer.get_size()}")
-                return Gst.PadProbeReturn.OK
-
-            # Add probes to all elements
-            def add_probes(element):
-                src_pad = element.get_static_pad('src')
-                if src_pad:
-                    src_pad.add_probe(Gst.PadProbeType.BUFFER, on_buffer_probe)
-
-            # Iterate through all elements and add probes
-            iterator = self.pipeline.iterate_elements()
-            while True:
-                result = iterator.next()
-                if result[0] == Gst.IteratorResult.DONE:
-                    break
-                if result[0] == Gst.IteratorResult.OK:
-                    element = result[1]
-                    add_probes(element)
-
             # Set up bus monitoring
             bus = self.pipeline.get_bus()
             bus.add_signal_watch()
@@ -107,36 +74,28 @@ class CameraStream:
             if ret == Gst.StateChangeReturn.FAILURE:
                 raise Exception("Failed to set pipeline to PLAYING state")
 
-            print(f"Pipeline successfully created and started with {self.codec} codec")
+            print(f"Pipeline successfully created and started for {self.rtsp_url}")
             self.pipeline_ready = True
-
+            
         except Exception as e:
             self.error_message = str(e)
             print(f"Error creating pipeline: {e}")
             self.cleanup()
             raise
-
+    
     def on_bus_message(self, bus, message):
-        """Handle pipeline bus messages with more detailed logging"""
+        """Handle pipeline bus messages"""
         t = message.type
         if t == Gst.MessageType.ERROR:
             err, debug = message.parse_error()
             print(f"Pipeline Error: {err.message}")
             print(f"Debug details: {debug}")
-            print(f"Source element: {message.src.get_name()}")
-            
-            # Get more detailed element state information
-            if message.src:
-                state = message.src.get_state(0)
-                print(f"Element state: {state[1].value_name}")
-            
             self.error_message = err.message
             self.pipeline_ready = False
             self.cleanup()
         elif t == Gst.MessageType.WARNING:
             err, debug = message.parse_warning()
             print(f"Pipeline Warning: {err.message}")
-            print(f"Debug details: {debug}")
         elif t == Gst.MessageType.STATE_CHANGED:
             if message.src == self.pipeline:
                 old_state, new_state, pending_state = message.parse_state_changed()
@@ -145,7 +104,7 @@ class CameraStream:
                 # If entering PLAYING state, mark pipeline as ready
                 if new_state == Gst.State.PLAYING:
                     self.pipeline_ready = True
-
+    
     def on_negotiation_needed(self, element):
         if not self.pipeline_ready:
             print("Pipeline not ready, skipping negotiation")
@@ -157,7 +116,7 @@ class CameraStream:
             element.emit('create-offer', None, promise)
         except Exception as e:
             print(f"Error in negotiation: {e}")
-
+    
     def on_offer_created(self, promise, element):
         print("Offer created, setting local description...")
         try:
@@ -180,7 +139,7 @@ class CameraStream:
             print(f"Error creating offer: {e}")
             self.error_message = str(e)
             self.cleanup()
-
+    
     def on_ice_candidate(self, webrtc, mlineindex, candidate):
         if not hasattr(self, 'pending_ice_candidates'):
             self.pending_ice_candidates = []
@@ -198,13 +157,9 @@ class CameraStream:
         self.pipeline_ready = False
 
 
-
-
-
-
-class CameraManager(Node):
+class CameraClient(Node):
     def __init__(self):
-        super().__init__('camera_manager')
+        super().__init__('camera_client')
         
         # Initialize GStreamer
         Gst.init(None)
@@ -214,12 +169,9 @@ class CameraManager(Node):
         
         # Dictionary to store active camera streams
         self.cameras: Dict[str, CameraStream] = {}
-
-        # Create camera order mapping
-        self.camera_order = {
-            camera_id: index 
-            for index, camera_id in enumerate(self.config['CAMERAS'].keys())
-        }
+        
+        # Dictionary to store camera server information
+        self.camera_servers = {}
         
         # GLib main loop for GStreamer
         self.loop = GLib.MainLoop()
@@ -237,26 +189,75 @@ class CameraManager(Node):
             10
         )
         
-        self.get_logger().info('Camera Manager initialized')
+        # Create scanner timer
+        self.scanner_timer = self.create_timer(10.0, self.scan_camera_servers)
+        
+        self.get_logger().info('Camera Client initialized')
+        
+        # Initial scan
+        self.scan_camera_servers()
 
     def _load_config(self) -> dict:
-        """Load camera configuration from JSON file"""
+        """Load camera configuration and set defaults"""
         current_path = Path(__file__).resolve()
         current_path_str = str(current_path)
         ros2_ws_index = current_path_str.rfind("ros2_ws/")
         if ros2_ws_index == -1:
-            raise FileNotFoundError("ros2_ws directory not found in the path.")
+            config_path = Path(os.path.expanduser("~/.config/camera_client/config.json"))
+        else:
+            base_path = current_path_str[:ros2_ws_index + len("ros2_ws/")]
+            config_path = Path(base_path).parent / 'cams' / 'cameras.json'
         
-        base_path = current_path_str[:ros2_ws_index + len("ros2_ws/")]
-        config_path = Path(base_path).parent / 'cams' / 'cameras.json'
+        default_config = {
+            "BASE_PORT": 50000,
+            "CAMERAS": {},
+            "CAMERA_SERVERS": [
+                # Default list of camera servers to scan
+                "http://raspberrypi.local:8080/status",
+                "http://raspberrypi-2.local:8080/status"
+            ]
+        }
         
-        if not config_path.exists():
-            raise FileNotFoundError(f"Configuration file not found: {config_path}")
+        if config_path.exists():
+            try:
+                with open(config_path, 'r') as f:
+                    config = json.load(f)
+                    # Merge with defaults for missing keys
+                    if "CAMERA_SERVERS" not in config:
+                        config["CAMERA_SERVERS"] = default_config["CAMERA_SERVERS"]
+                    return config
+            except Exception as e:
+                self.get_logger().error(f"Error loading configuration: {e}")
         
-        with open(config_path, 'r') as f:
-            return json.load(f)
+        os.makedirs(config_path.parent, exist_ok=True)
+        with open(config_path, 'w') as f:
+            json.dump(default_config, f, indent=2)
         
+        return default_config
 
+    def scan_camera_servers(self):
+        """Scan all configured camera servers to discover cameras"""
+        self.get_logger().info('Scanning for camera servers...')
+        
+        for server_url in self.config["CAMERA_SERVERS"]:
+            try:
+                response = requests.get(server_url, timeout=3)
+                if response.status_code == 200:
+                    server_info = response.json()
+                    self.get_logger().info(f'Found camera server: {server_info["camera_id"]}')
+                    
+                    # Store/update server information
+                    self.camera_servers[server_info["camera_id"]] = server_info
+                    
+                    # Register streams in our CAMERAS config
+                    if "streams" in server_info:
+                        for camera_id, stream_info in server_info["streams"].items():
+                            full_camera_id = f"{server_info['camera_id']}_{camera_id}"
+                            self.config["CAMERAS"][full_camera_id] = stream_info["rtsp_url"]
+                            self.get_logger().info(f'Registered camera: {full_camera_id} -> {stream_info["rtsp_url"]}')
+            except requests.RequestException as e:
+                self.get_logger().warning(f'Failed to connect to camera server {server_url}: {e}')
+    
     def create_services(self):
         """Create ROS2 services"""
         self.srv_request_stream = self.create_service(
@@ -283,32 +284,25 @@ class CameraManager(Node):
             self._handle_remove_peer
         )
 
-    def _get_camera_port(self, camera_id: str) -> int:
-        """Get unique port for camera based on BASE_PORT and camera order"""
-        if camera_id not in self.camera_order:
-            raise ValueError(f"Camera ID {camera_id} not found in configuration")
-            
-        return self.config['BASE_PORT'] + self.camera_order[camera_id]
-
     def _handle_stream_request(self, request, response):
         """Handle incoming stream requests"""
         self.get_logger().info(f"Received stream request: {request}")
         try:
             camera_id = request.camera_id
             peer_id = request.peer_id
-            codec = request.codec.lower()  # Get the requested codec
+            codec = request.codec.lower()
             
-            if camera_id not in self.config['CAMERAS']:
+            if camera_id not in self.config["CAMERAS"]:
                 response.success = False
                 response.error_message = f"Camera {camera_id} not found"
                 return response
             
+            # Get RTSP URL from config
+            rtsp_url = self.config["CAMERAS"][camera_id]
+            
             # Get or create camera stream
             if camera_id not in self.cameras:
-                device_path = self.config['CAMERAS'][camera_id]
-                port = self._get_camera_port(camera_id)
-                
-                camera_stream = CameraStream(device_path, port, codec)  # Pass the codec
+                camera_stream = CameraStream(camera_id, rtsp_url)
                 try:
                     camera_stream.create_pipeline()
                 except Exception as e:
@@ -376,7 +370,8 @@ class CameraManager(Node):
             
             camera_stream = self.cameras[camera_id]
             
-            # Set remote description
+            # Set remote description (adapted for GStreamer-only implementation)
+            from gi.repository import GstSdp, GstWebRTC
             answer = GstWebRTC.WebRTCSessionDescription.new(
                 GstWebRTC.WebRTCSDPType.ANSWER,
                 GstSdp.SDPMessage.parse_buffer(request.answer_sdp.encode())
@@ -478,20 +473,20 @@ class CameraManager(Node):
             camera_stream.cleanup()
         self.cameras.clear()
         
-        if self.loop.is_running():
+        if hasattr(self, 'loop') and self.loop.is_running():
             self.loop.quit()
         
-        if self.loop_thread.is_alive():
-            self.loop_thread.join()
+        if hasattr(self, 'loop_thread') and self.loop_thread.is_alive():
+            self.loop_thread.join(timeout=1.0)
 
 def main(args=None):
     rclpy.init(args=args)
-    camera_manager = CameraManager()
+    camera_client = CameraClient()
     try:
-        rclpy.spin(camera_manager)
+        rclpy.spin(camera_client)
     finally:
-        camera_manager.cleanup()
-        camera_manager.destroy_node()
+        camera_client.cleanup()
+        camera_client.destroy_node()
         rclpy.shutdown()
 
 if __name__ == '__main__':

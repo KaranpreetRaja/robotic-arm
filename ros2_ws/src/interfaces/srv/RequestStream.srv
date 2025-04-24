@@ -1,0 +1,8 @@
+string camera_id  # ID from config file
+string peer_id
+string codec  # 'h264' or 'vp8'
+---
+bool success
+string error_message
+string offer_sdp
+string offer_type

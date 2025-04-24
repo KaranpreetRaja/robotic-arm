@@ -1,0 +1,7 @@
+string camera_id
+string peer_id
+string answer_sdp
+string answer_type
+---
+bool success
+string error_message

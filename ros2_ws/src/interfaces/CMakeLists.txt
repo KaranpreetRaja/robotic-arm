@@ -15,6 +15,11 @@ find_package(rosidl_default_generators REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   # NOTE: List all the interfaces here
   # "msg/Example.msg"
+  "msg/WebRTCMessage.msg"
+  "srv/AddIceCandidate.srv"
+  "srv/RemovePeer.srv"
+  "srv/RequestStream.srv"
+  "srv/SetAnswer.srv"
  )
 ament_export_dependencies(rosidl_default_runtime)
 

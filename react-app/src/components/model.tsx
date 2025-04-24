@@ -33,6 +33,7 @@ export default function ArmModel({
 }: JointInterface) {
     const containerRef = useRef<HTMLDivElement>(null);
     const robotRef = useRef<any>(null);
+    const feedbackRobotRef = useRef<any>(null); // Reference for the feedback arm
     const targetRef = useRef<THREE.Group | null>(null);
     const transformControlsRef = useRef<TransformControls | null>(null);
     const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
@@ -46,14 +47,11 @@ export default function ArmModel({
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
     const [endEffectorType, setEndEffectorType] = useState<'camera' | 'gripper'>('gripper');
 
-
     useEffect(() => {
-
         if (intervalRef.current) {
             clearInterval(intervalRef.current);
             intervalRef.current = null;
         }
-
 
         if (continuousSend && pubConnectionStatus === 'connected' && currentPose) {
             const intervalTime = Math.floor(1000 / updateFrequency);
@@ -64,7 +62,6 @@ export default function ArmModel({
             console.log(`Started continuous pose updates at ${updateFrequency}Hz (${intervalTime}ms)`);
         }
 
-
         return () => {
             if (intervalRef.current) {
                 clearInterval(intervalRef.current);
@@ -72,7 +69,6 @@ export default function ArmModel({
             }
         };
     }, [continuousSend, pubConnectionStatus, updateFrequency, currentPose]);
-
 
     const sendPoseToServer = () => {
         if (!websocketPub || pubConnectionStatus !== 'connected' || !currentPose) {
@@ -85,7 +81,6 @@ export default function ArmModel({
             targetRef.current.getWorldPosition(position);
 
             const rotation = new THREE.Euler().setFromQuaternion(targetRef.current.quaternion);
-
 
             const poseData = {
                 position: {
@@ -100,27 +95,25 @@ export default function ArmModel({
                 }
             };
 
-
             const message = {
                 topic: "/robot/raw/target_pose",
                 message: JSON.stringify(poseData)
             };
 
-
             websocketPub.send(JSON.stringify(message));
         }
     };
 
-    const getEndEffectorPosition = () => {
-        if (!robotRef.current) return null;
+    const getEndEffectorPosition = (robot: any) => {
+        if (!robot) return null;
 
         const endEffectorNames = ['ef', 'endeff', 'eef'];
         let endEffectorLink = null;
 
         for (const name of endEffectorNames) {
-            if (robotRef.current.links[name]) {
+            if (robot.links[name]) {
                 console.log(`Found end effector link: ${name}`);
-                endEffectorLink = robotRef.current.links[name];
+                endEffectorLink = robot.links[name];
                 break;
             }
         }
@@ -129,8 +122,8 @@ export default function ArmModel({
             const position = new THREE.Vector3();
             endEffectorLink.getWorldPosition(position);
             return position;
-        } else if (robotRef.current.joints['J6']) {
-            const j6Joint = robotRef.current.joints['J6'];
+        } else if (robot.joints['J6']) {
+            const j6Joint = robot.joints['J6'];
             const position = new THREE.Vector3();
             j6Joint.getWorldPosition(position);
             return position;
@@ -230,37 +223,63 @@ export default function ArmModel({
 
         const manager = new THREE.LoadingManager();
         const loader = new URDFLoader(manager);
+        const feedbackLoader = new URDFLoader(manager);
 
         let urdf_package;
         if (endEffectorType == "gripper") {
             urdf_package = 'gripper_end_effector/urdf/gripper_end_effector.urdf';
         }
         else {
-            urdf_package = 'camera_end_effector/urdf/camera_end_effector.urdf';
+            urdf_package = 'camera_end_effector_v2/urdf/camera_end_effector_v2.urdf';
         }
 
         loader.load(urdf_package, robot => {
-
-            console.log("Arm URDF loaded");
+            console.log("Main Arm URDF loaded");
             robotRef.current = robot;
-            console.log(robot)
+            console.log(robot);
             robot.rotation.set(Math.PI / 2, Math.PI, Math.PI);
+            robot.position.x = -0.3;
 
-            robot.joints[`j2`].setJointValue(THREE.MathUtils.degToRad(jvalue1));
-            robot.joints[`j3`].setJointValue(THREE.MathUtils.degToRad(jvalue2));
-            robot.joints[`j4`].setJointValue(THREE.MathUtils.degToRad(jvalue3));
-            robot.joints[`j5`].setJointValue(THREE.MathUtils.degToRad(jvalue4));
-            robot.joints[`j6`].setJointValue(THREE.MathUtils.degToRad(jvalue5));
-            if (endEffectorType == "camera") {
-                robot.joints[`endeff`].setJointValue(THREE.MathUtils.degToRad(jvalue6));
-            }
-            else {
-                robot.joints[`ef`].setJointValue(THREE.MathUtils.degToRad(jvalue6));
-            }
+            robot.joints['j2'].setJointValue(THREE.MathUtils.degToRad(jvalue1));
+            robot.joints['j3'].setJointValue(THREE.MathUtils.degToRad(jvalue2));
+            robot.joints['j4'].setJointValue(THREE.MathUtils.degToRad(jvalue3));
+            robot.joints['j5'].setJointValue(THREE.MathUtils.degToRad(jvalue4));
+            robot.joints['j6'].setJointValue(THREE.MathUtils.degToRad(jvalue5));
+            robot.joints['ef'].setJointValue(THREE.MathUtils.degToRad(jvalue6));
             scene.add(robot);
 
+            feedbackLoader.load(urdf_package, feedbackRobot => {
+                console.log("Feedback Arm URDF loaded");
+                feedbackRobotRef.current = feedbackRobot;
+                feedbackRobot.rotation.set(Math.PI / 2, Math.PI, Math.PI);
+                feedbackRobot.position.x = 0.3;
+                
+                // Make the feedback robot transparent
+                feedbackRobot.traverse((child: THREE.Object3D) => {
+                    if (child instanceof THREE.Mesh) {
+                        child.material = new THREE.MeshStandardMaterial({
+                            color: 0x88aaff,
+                            transparent: true,
+                            opacity: 1
+                        });
+                    }
+                });
+
+                feedbackRobot.joints['j2'].setJointValue(THREE.MathUtils.degToRad(jvalue1));
+                feedbackRobot.joints['j3'].setJointValue(THREE.MathUtils.degToRad(jvalue2));
+                feedbackRobot.joints['j4'].setJointValue(THREE.MathUtils.degToRad(jvalue3));
+                feedbackRobot.joints['j5'].setJointValue(THREE.MathUtils.degToRad(jvalue4));
+                feedbackRobot.joints['j6'].setJointValue(THREE.MathUtils.degToRad(jvalue5));
+                feedbackRobot.joints['ef'].setJointValue(THREE.MathUtils.degToRad(jvalue6));
+                scene.add(feedbackRobot);
+            },
+            undefined,
+            error => {
+                console.error('An error occurred while loading the feedback URDF model:', error.message);
+            });
+
             setTimeout(() => {
-                const endEffectorPosition = getEndEffectorPosition();
+                const endEffectorPosition = getEndEffectorPosition(robotRef.current);
                 if (endEffectorPosition && targetRef.current) {
                     targetRef.current.position.copy(endEffectorPosition);
 
@@ -271,10 +290,10 @@ export default function ArmModel({
                 }
             }, 100);
         },
-            undefined,
-            error => {
-                console.error('An error occurred while loading the URDF model:', error.message);
-            });
+        undefined,
+        error => {
+            console.error('An error occurred while loading the main URDF model:', error.message);
+        });
 
         const handleKeyDown = (event: KeyboardEvent) => {
             if (event.key === 'r' || event.key === 'R') {
@@ -328,23 +347,28 @@ export default function ArmModel({
     }, [endEffectorType]);
 
     useEffect(() => {
-        if (!robotRef.current) return;
-        robotRef.current.joints[`j2`].setJointValue(THREE.MathUtils.degToRad(jvalue1));
-        robotRef.current.joints[`j3`].setJointValue(THREE.MathUtils.degToRad(jvalue2));
-        robotRef.current.joints[`j4`].setJointValue(THREE.MathUtils.degToRad(jvalue3));
-        robotRef.current.joints[`j5`].setJointValue(THREE.MathUtils.degToRad(jvalue4));
-        robotRef.current.joints[`j6`].setJointValue(THREE.MathUtils.degToRad(jvalue5));
-        if (endEffectorType == "camera") {
-            robotRef.current.joints[`endeff`].setJointValue(THREE.MathUtils.degToRad(jvalue6));
+        if (robotRef.current) {
+            robotRef.current.joints['j2'].setJointValue(THREE.MathUtils.degToRad(jvalue1));
+            robotRef.current.joints['j3'].setJointValue(THREE.MathUtils.degToRad(jvalue2));
+            robotRef.current.joints['j4'].setJointValue(THREE.MathUtils.degToRad(jvalue3));
+            robotRef.current.joints['j5'].setJointValue(THREE.MathUtils.degToRad(jvalue4));
+            robotRef.current.joints['j6'].setJointValue(THREE.MathUtils.degToRad(jvalue5));
+            robotRef.current.joints['ef'].setJointValue(THREE.MathUtils.degToRad(jvalue6));
         }
-        else{
-            robotRef.current.joints[`ef`].setJointValue(THREE.MathUtils.degToRad(jvalue6));
+        
+        if (feedbackRobotRef.current) {
+            feedbackRobotRef.current.joints['j2'].setJointValue(THREE.MathUtils.degToRad(jvalue1));
+            feedbackRobotRef.current.joints['j3'].setJointValue(THREE.MathUtils.degToRad(jvalue2));
+            feedbackRobotRef.current.joints['j4'].setJointValue(THREE.MathUtils.degToRad(jvalue3));
+            feedbackRobotRef.current.joints['j5'].setJointValue(THREE.MathUtils.degToRad(jvalue4));
+            feedbackRobotRef.current.joints['j6'].setJointValue(THREE.MathUtils.degToRad(jvalue5));
+            feedbackRobotRef.current.joints['ef'].setJointValue(THREE.MathUtils.degToRad(jvalue6));
         }
-    }, [jvalue1, jvalue2, jvalue3, jvalue4, jvalue5, jvalue6]);
+    }, [jvalue1, jvalue2, jvalue3, jvalue4, jvalue5, jvalue6, endEffectorType]);
 
     return (
         <div className="flex flex-col">
-            <div className='w-full h-48' ref={containerRef} />
+            <div className="w-full h-48" ref={containerRef} />
             <div className="mt-48 flex flex-col gap-2 ml-4">
                 <div className="flex items-center gap-2">
                     <div className={`w-3 h-3 rounded-full ${pubConnectionStatus === 'connected' ? 'bg-green-500' :
@@ -415,7 +439,7 @@ export default function ArmModel({
                                     return "camera";
                                 }
                             })}
-                        className={`px-3 py-1 text-sm rounded bg-yellow-300 text-gray-500 cursor-not-allowed`}
+                        className="px-3 py-1 text-sm rounded bg-yellow-500 text-white hover:bg-yellow-600"
                     >
                         Switch EndEffector Type (E)
                     </button>

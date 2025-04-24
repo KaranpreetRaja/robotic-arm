@@ -20,12 +20,12 @@ interface EndEffectorPose {
     rotation: THREE.Euler;
 }
 
-export default function ArmModel({ 
-    jvalue1, 
-    jvalue2, 
-    jvalue3, 
-    jvalue4, 
-    jvalue5, 
+export default function ArmModel({
+    jvalue1,
+    jvalue2,
+    jvalue3,
+    jvalue4,
+    jvalue5,
     jvalue6,
     websocketPub,
     pubConnectionStatus,
@@ -44,26 +44,27 @@ export default function ArmModel({
     const [continuousSend, setContinuousSend] = useState(false);
     const [updateFrequency, setUpdateFrequency] = useState(10); // Hz
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
+    const [endEffectorType, setEndEffectorType] = useState<'camera' | 'gripper'>('gripper');
 
 
     useEffect(() => {
-       
+
         if (intervalRef.current) {
             clearInterval(intervalRef.current);
             intervalRef.current = null;
         }
 
-        
+
         if (continuousSend && pubConnectionStatus === 'connected' && currentPose) {
-            const intervalTime = Math.floor(1000 / updateFrequency); 
+            const intervalTime = Math.floor(1000 / updateFrequency);
             intervalRef.current = setInterval(() => {
                 sendPoseToServer();
             }, intervalTime);
-            
+
             console.log(`Started continuous pose updates at ${updateFrequency}Hz (${intervalTime}ms)`);
         }
 
-        
+
         return () => {
             if (intervalRef.current) {
                 clearInterval(intervalRef.current);
@@ -72,20 +73,20 @@ export default function ArmModel({
         };
     }, [continuousSend, pubConnectionStatus, updateFrequency, currentPose]);
 
-    
+
     const sendPoseToServer = () => {
         if (!websocketPub || pubConnectionStatus !== 'connected' || !currentPose) {
             console.error('Cannot send pose: WebSocket not connected or pose not available');
             return;
         }
-        
+
         if (targetRef.current) {
             const position = new THREE.Vector3();
             targetRef.current.getWorldPosition(position);
-            
+
             const rotation = new THREE.Euler().setFromQuaternion(targetRef.current.quaternion);
-            
-            
+
+
             const poseData = {
                 position: {
                     x: position.x.toFixed(4),
@@ -98,24 +99,24 @@ export default function ArmModel({
                     z: rotation.z.toFixed(4)
                 }
             };
-            
-            
+
+
             const message = {
-                topic: "/robot/raw/target_pose", 
+                topic: "/robot/raw/target_pose",
                 message: JSON.stringify(poseData)
             };
-            
-        
+
+
             websocketPub.send(JSON.stringify(message));
         }
     };
 
     const getEndEffectorPosition = () => {
         if (!robotRef.current) return null;
-        
-        const endEffectorNames = ['tool0', 'link7', 'Link7', 'tool', 'Tool', 'end_effector', 'gripper', 'eef'];
+
+        const endEffectorNames = ['ef', 'endeff', 'eef'];
         let endEffectorLink = null;
-        
+
         for (const name of endEffectorNames) {
             if (robotRef.current.links[name]) {
                 console.log(`Found end effector link: ${name}`);
@@ -123,7 +124,7 @@ export default function ArmModel({
                 break;
             }
         }
-        
+
         if (endEffectorLink) {
             const position = new THREE.Vector3();
             endEffectorLink.getWorldPosition(position);
@@ -134,7 +135,7 @@ export default function ArmModel({
             j6Joint.getWorldPosition(position);
             return position;
         }
-        
+
         return new THREE.Vector3(0, 0, 0);
     };
 
@@ -143,7 +144,7 @@ export default function ArmModel({
 
         const scene = new THREE.Scene();
         sceneRef.current = scene;
-        
+
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         camera.position.z = 2;
         cameraRef.current = camera;
@@ -170,7 +171,7 @@ export default function ArmModel({
         scene.add(targetGroup);
 
         const sphereGeometry = new THREE.SphereGeometry(0.05, 32, 32);
-        const sphereMaterial = new THREE.MeshStandardMaterial({ 
+        const sphereMaterial = new THREE.MeshStandardMaterial({
             color: 0x0088ff,
             transparent: true,
             opacity: 0.7
@@ -179,20 +180,20 @@ export default function ArmModel({
         targetGroup.add(sphere);
 
         const axisLength = 0.1;
-        
+
         const xAxisGeometry = new THREE.CylinderGeometry(0.005, 0.005, axisLength);
         const xAxisMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
         const xAxis = new THREE.Mesh(xAxisGeometry, xAxisMaterial);
         xAxis.rotation.z = Math.PI / 2;
         xAxis.position.x = axisLength / 2;
         targetGroup.add(xAxis);
-        
+
         const yAxisGeometry = new THREE.CylinderGeometry(0.005, 0.005, axisLength);
         const yAxisMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
         const yAxis = new THREE.Mesh(yAxisGeometry, yAxisMaterial);
         yAxis.position.y = axisLength / 2;
         targetGroup.add(yAxis);
-        
+
         const zAxisGeometry = new THREE.CylinderGeometry(0.005, 0.005, axisLength);
         const zAxisMaterial = new THREE.MeshBasicMaterial({ color: 0x0000ff });
         const zAxis = new THREE.Mesh(zAxisGeometry, zAxisMaterial);
@@ -217,12 +218,12 @@ export default function ArmModel({
             if (targetRef.current) {
                 const position = new THREE.Vector3();
                 targetRef.current.getWorldPosition(position);
-                
+
                 const pose: EndEffectorPose = {
                     position: position,
                     rotation: new THREE.Euler().setFromQuaternion(targetRef.current.quaternion)
                 };
-                
+
                 setCurrentPose(pose);
             }
         });
@@ -230,26 +231,39 @@ export default function ArmModel({
         const manager = new THREE.LoadingManager();
         const loader = new URDFLoader(manager);
 
-        loader.load('RoboticArmv2/urdf/RoboticArmv2.urdf', robot => {
+        let urdf_package;
+        if (endEffectorType == "gripper") {
+            urdf_package = 'gripper_end_effector/urdf/gripper_end_effector.urdf';
+        }
+        else {
+            urdf_package = 'camera_end_effector/urdf/camera_end_effector.urdf';
+        }
+
+        loader.load(urdf_package, robot => {
+
             console.log("Arm URDF loaded");
             robotRef.current = robot;
-
+            console.log(robot)
             robot.rotation.set(Math.PI / 2, Math.PI, Math.PI);
 
-            robot.joints[`J1`].setJointValue(THREE.MathUtils.degToRad(jvalue1));
-            robot.joints[`J2`].setJointValue(THREE.MathUtils.degToRad(jvalue2));
-            robot.joints[`J3`].setJointValue(THREE.MathUtils.degToRad(jvalue3));
-            robot.joints[`J4`].setJointValue(THREE.MathUtils.degToRad(jvalue4));
-            robot.joints[`J5`].setJointValue(THREE.MathUtils.degToRad(jvalue5));
-            robot.joints[`J6`].setJointValue(THREE.MathUtils.degToRad(jvalue6));
-
+            robot.joints[`j2`].setJointValue(THREE.MathUtils.degToRad(jvalue1));
+            robot.joints[`j3`].setJointValue(THREE.MathUtils.degToRad(jvalue2));
+            robot.joints[`j4`].setJointValue(THREE.MathUtils.degToRad(jvalue3));
+            robot.joints[`j5`].setJointValue(THREE.MathUtils.degToRad(jvalue4));
+            robot.joints[`j6`].setJointValue(THREE.MathUtils.degToRad(jvalue5));
+            if (endEffectorType == "camera") {
+                robot.joints[`endeff`].setJointValue(THREE.MathUtils.degToRad(jvalue6));
+            }
+            else {
+                robot.joints[`ef`].setJointValue(THREE.MathUtils.degToRad(jvalue6));
+            }
             scene.add(robot);
-            
+
             setTimeout(() => {
                 const endEffectorPosition = getEndEffectorPosition();
                 if (endEffectorPosition && targetRef.current) {
                     targetRef.current.position.copy(endEffectorPosition);
-                    
+
                     setCurrentPose({
                         position: new THREE.Vector3().copy(endEffectorPosition),
                         rotation: new THREE.Euler().setFromQuaternion(targetRef.current.quaternion)
@@ -257,10 +271,10 @@ export default function ArmModel({
                 }
             }, 100);
         },
-        undefined,
-        error => {
-            console.error('An error occurred while loading the URDF model:', error.message);
-        });
+            undefined,
+            error => {
+                console.error('An error occurred while loading the URDF model:', error.message);
+            });
 
         const handleKeyDown = (event: KeyboardEvent) => {
             if (event.key === 'r' || event.key === 'R') {
@@ -277,6 +291,14 @@ export default function ArmModel({
                 sendPoseToServer();
             } else if (event.key === 'c' || event.key === 'C') {
                 setContinuousSend(prev => !prev);
+            } else if (event.key === 'e' || event.key === 'E') {
+                setEndEffectorType((prev) => {
+                    if (prev === "camera") {
+                        return "gripper";
+                    } else {
+                        return "camera";
+                    }
+                })
             }
         };
 
@@ -295,7 +317,7 @@ export default function ArmModel({
 
         return () => {
             window.removeEventListener('keydown', handleKeyDown);
-            
+
             if (rendererRef.current) {
                 rendererRef.current.dispose();
             }
@@ -303,17 +325,19 @@ export default function ArmModel({
                 containerRef.current.removeChild(rendererRef.current.domElement);
             }
         };
-    }, []);
+    }, [endEffectorType]);
 
     useEffect(() => {
         if (!robotRef.current) return;
-
-        robotRef.current.joints[`J1`].setJointValue(THREE.MathUtils.degToRad(jvalue1));
-        robotRef.current.joints[`J2`].setJointValue(THREE.MathUtils.degToRad(jvalue2));
-        robotRef.current.joints[`J3`].setJointValue(THREE.MathUtils.degToRad(jvalue3));
-        robotRef.current.joints[`J4`].setJointValue(THREE.MathUtils.degToRad(jvalue4));
-        robotRef.current.joints[`J5`].setJointValue(THREE.MathUtils.degToRad(jvalue5));
-        robotRef.current.joints[`J6`].setJointValue(THREE.MathUtils.degToRad(jvalue6));
+        robotRef.current.joints[`j2`].setJointValue(THREE.MathUtils.degToRad(jvalue1));
+        robotRef.current.joints[`j3`].setJointValue(THREE.MathUtils.degToRad(jvalue2));
+        robotRef.current.joints[`j4`].setJointValue(THREE.MathUtils.degToRad(jvalue3));
+        robotRef.current.joints[`j5`].setJointValue(THREE.MathUtils.degToRad(jvalue4));
+        robotRef.current.joints[`j6`].setJointValue(THREE.MathUtils.degToRad(jvalue5));
+        if (endEffectorType == "camera") {
+            robotRef.current.joints[`endeff`].setJointValue(THREE.MathUtils.degToRad(jvalue6));
+        }
+        robotRef.current.joints[`ef`].setJointValue(THREE.MathUtils.degToRad(jvalue6));
     }, [jvalue1, jvalue2, jvalue3, jvalue4, jvalue5, jvalue6]);
 
     return (
@@ -321,110 +345,118 @@ export default function ArmModel({
             <div className='w-full h-48' ref={containerRef} />
             <div className="mt-48 flex flex-col gap-2 ml-4">
                 <div className="flex items-center gap-2">
-                    <div className={`w-3 h-3 rounded-full ${
-                        pubConnectionStatus === 'connected' ? 'bg-green-500' : 
+                    <div className={`w-3 h-3 rounded-full ${pubConnectionStatus === 'connected' ? 'bg-green-500' :
                         pubConnectionStatus === 'error' ? 'bg-red-500' : 'bg-gray-500'
-                    }`}></div>
+                        }`}></div>
                     <span className="text-xl">
                         Publisher WebSocket: {pubConnectionStatus}
                     </span>
                 </div>
 
                 <div className="flex items-center gap-2">
-                    <div className={`w-3 h-3 rounded-full ${
-                        subConnectionStatus === 'connected' ? 'bg-green-500' : 
+                    <div className={`w-3 h-3 rounded-full ${subConnectionStatus === 'connected' ? 'bg-green-500' :
                         subConnectionStatus === 'error' ? 'bg-red-500' : 'bg-gray-500'
-                    }`}></div>
+                        }`}></div>
                     <span className="text-xl">
                         Subscriber WebSocket: {subConnectionStatus}
                     </span>
                 </div>
-                
+
                 <div className="flex gap-2 flex-wrap">
-                    <button 
+                    <button
                         onClick={() => {
                             if (transformControlsRef.current) {
                                 transformControlsRef.current.setMode('translate');
                                 setControlMode('translate');
                             }
                         }}
-                        className={`px-3 py-1 text-sm rounded ${
-                            controlMode === 'translate' 
-                                ? 'bg-blue-600 text-white' 
-                                : 'bg-gray-200 text-gray-800'
-                        }`}
+                        className={`px-3 py-1 text-sm rounded ${controlMode === 'translate'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-200 text-gray-800'
+                            }`}
                     >
                         Position (T)
                     </button>
-                    
-                    <button 
+
+                    <button
                         onClick={() => {
                             if (transformControlsRef.current) {
                                 transformControlsRef.current.setMode('rotate');
                                 setControlMode('rotate');
                             }
                         }}
-                        className={`px-3 py-1 text-sm rounded ${
-                            controlMode === 'rotate' 
-                                ? 'bg-blue-600 text-white' 
-                                : 'bg-gray-200 text-gray-800'
-                        }`}
+                        className={`px-3 py-1 text-sm rounded ${controlMode === 'rotate'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-200 text-gray-800'
+                            }`}
                     >
                         Rotation (R)
                     </button>
-                    
-                    <button 
+
+                    <button
                         onClick={sendPoseToServer}
                         disabled={pubConnectionStatus !== 'connected' || !currentPose}
-                        className={`px-3 py-1 text-sm rounded ${
-                            pubConnectionStatus === 'connected' && currentPose
-                                ? 'bg-green-600 text-white hover:bg-green-700' 
-                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        }`}
+                        className={`px-3 py-1 text-sm rounded ${pubConnectionStatus === 'connected' && currentPose
+                            ? 'bg-green-600 text-white hover:bg-green-700'
+                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            }`}
                     >
                         Send Once (S)
                     </button>
-                    
-                    <button 
+
+                    <button
+                        onClick={() =>
+                            setEndEffectorType((prev) => {
+                                if (prev === "camera") {
+                                    return "gripper";
+                                } else {
+                                    return "camera";
+                                }
+                            })}
+                        className={`px-3 py-1 text-sm rounded bg-yellow-300 text-gray-500 cursor-not-allowed`}
+                    >
+                        Switch EndEffector Type (E)
+                    </button>
+
+                    <button
                         onClick={() => setContinuousSend(!continuousSend)}
                         disabled={pubConnectionStatus !== 'connected' || !currentPose}
-                        className={`px-3 py-1 text-sm rounded ${
-                            pubConnectionStatus === 'connected' && currentPose
-                                ? (continuousSend 
-                                    ? 'bg-red-600 text-white hover:bg-red-700'
-                                    : 'bg-green-600 text-white hover:bg-green-700')
-                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        }`}
+                        className={`px-3 py-1 text-sm rounded ${pubConnectionStatus === 'connected' && currentPose
+                            ? (continuousSend
+                                ? 'bg-red-600 text-white hover:bg-red-700'
+                                : 'bg-green-600 text-white hover:bg-green-700')
+                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            }`}
                     >
                         {continuousSend ? 'Stop Streaming (C)' : 'Start Streaming (C)'}
                     </button>
                 </div>
-                
+
                 {continuousSend && (
                     <div className="flex items-center gap-2 mt-2">
                         <span className="text-sm">Update Rate:</span>
-                        <input 
-                            type="range" 
-                            min="1" 
-                            max="30" 
-                            value={updateFrequency} 
+                        <input
+                            type="range"
+                            min="1"
+                            max="30"
+                            value={updateFrequency}
                             onChange={(e) => setUpdateFrequency(parseInt(e.target.value))}
                             className="w-32"
                         />
                         <span className="text-sm font-mono">{updateFrequency} Hz</span>
                     </div>
                 )}
-                
+
                 {currentPose && (
                     <div className="mt-2 text-xl font-mono bg-gray-100 p-2 rounded">
-                        <div>Sphere Position: 
-                            x: {currentPose.position.x.toFixed(4)}, 
-                            y: {currentPose.position.y.toFixed(4)}, 
+                        <div>Sphere Position:
+                            x: {currentPose.position.x.toFixed(4)},
+                            y: {currentPose.position.y.toFixed(4)},
                             z: {currentPose.position.z.toFixed(4)}
                         </div>
-                        <div>Sphere Rotation: 
-                            x: {currentPose.rotation.x.toFixed(4)}, 
-                            y: {currentPose.rotation.y.toFixed(4)}, 
+                        <div>Sphere Rotation:
+                            x: {currentPose.rotation.x.toFixed(4)},
+                            y: {currentPose.rotation.y.toFixed(4)},
                             z: {currentPose.rotation.z.toFixed(4)}
                         </div>
                         {continuousSend && (

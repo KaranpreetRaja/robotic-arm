@@ -11,7 +11,8 @@ interface JointInterface {
     jvalue5: number;
     jvalue6: number;
     websocketPub: any;
-    connectionStatus: any;
+    pubConnectionStatus: any;
+    subConnectionStatus: any;
 }
 
 interface EndEffectorPose {
@@ -27,7 +28,8 @@ export default function ArmModel({
     jvalue5, 
     jvalue6,
     websocketPub,
-    connectionStatus
+    pubConnectionStatus,
+    subConnectionStatus
 }: JointInterface) {
     const containerRef = useRef<HTMLDivElement>(null);
     const robotRef = useRef<any>(null);
@@ -52,7 +54,7 @@ export default function ArmModel({
         }
 
         
-        if (continuousSend && connectionStatus === 'connected' && currentPose) {
+        if (continuousSend && pubConnectionStatus === 'connected' && currentPose) {
             const intervalTime = Math.floor(1000 / updateFrequency); 
             intervalRef.current = setInterval(() => {
                 sendPoseToServer();
@@ -68,11 +70,11 @@ export default function ArmModel({
                 intervalRef.current = null;
             }
         };
-    }, [continuousSend, connectionStatus, updateFrequency, currentPose]);
+    }, [continuousSend, pubConnectionStatus, updateFrequency, currentPose]);
 
     
     const sendPoseToServer = () => {
-        if (!websocketPub || connectionStatus !== 'connected' || !currentPose) {
+        if (!websocketPub || pubConnectionStatus !== 'connected' || !currentPose) {
             console.error('Cannot send pose: WebSocket not connected or pose not available');
             return;
         }
@@ -317,14 +319,24 @@ export default function ArmModel({
     return (
         <div className="flex flex-col">
             <div className='w-full h-48' ref={containerRef} />
-            <div className="mt-64 flex flex-col gap-2 ml-4">
+            <div className="mt-48 flex flex-col gap-2 ml-4">
                 <div className="flex items-center gap-2">
                     <div className={`w-3 h-3 rounded-full ${
-                        connectionStatus === 'connected' ? 'bg-green-500' : 
-                        connectionStatus === 'error' ? 'bg-red-500' : 'bg-gray-500'
+                        pubConnectionStatus === 'connected' ? 'bg-green-500' : 
+                        pubConnectionStatus === 'error' ? 'bg-red-500' : 'bg-gray-500'
                     }`}></div>
                     <span className="text-xl">
-                        WebSocket: {connectionStatus}
+                        Publisher WebSocket: {pubConnectionStatus}
+                    </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <div className={`w-3 h-3 rounded-full ${
+                        subConnectionStatus === 'connected' ? 'bg-green-500' : 
+                        subConnectionStatus === 'error' ? 'bg-red-500' : 'bg-gray-500'
+                    }`}></div>
+                    <span className="text-xl">
+                        Subscriber WebSocket: {subConnectionStatus}
                     </span>
                 </div>
                 
@@ -363,9 +375,9 @@ export default function ArmModel({
                     
                     <button 
                         onClick={sendPoseToServer}
-                        disabled={connectionStatus !== 'connected' || !currentPose}
+                        disabled={pubConnectionStatus !== 'connected' || !currentPose}
                         className={`px-3 py-1 text-sm rounded ${
-                            connectionStatus === 'connected' && currentPose
+                            pubConnectionStatus === 'connected' && currentPose
                                 ? 'bg-green-600 text-white hover:bg-green-700' 
                                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                         }`}
@@ -375,9 +387,9 @@ export default function ArmModel({
                     
                     <button 
                         onClick={() => setContinuousSend(!continuousSend)}
-                        disabled={connectionStatus !== 'connected' || !currentPose}
+                        disabled={pubConnectionStatus !== 'connected' || !currentPose}
                         className={`px-3 py-1 text-sm rounded ${
-                            connectionStatus === 'connected' && currentPose
+                            pubConnectionStatus === 'connected' && currentPose
                                 ? (continuousSend 
                                     ? 'bg-red-600 text-white hover:bg-red-700'
                                     : 'bg-green-600 text-white hover:bg-green-700')

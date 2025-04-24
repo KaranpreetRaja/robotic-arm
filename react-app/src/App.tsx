@@ -13,22 +13,23 @@ function App() {
   const [websocketPub, setWebsocketPub] = useState<WebSocket | null>(null);
   const [websocketSub, setWebsocketSub] = useState<WebSocket | null>(null);
   const [pubConnectionStatus, pubSetConnectionStatus] = useState<'disconnected' | 'connected' | 'error'>('disconnected');
+  const [subConnectionStatus, subSetConnectionStatus] = useState<'disconnected' | 'connected' | 'error'>('disconnected');
 
   useEffect(() => {
     const ws = new WebSocket('ws://127.0.0.1:8080/ws_publish');
 
     ws.onopen = () => {
-      console.log('WebSocket Connected');
+      console.log('Publisher WebSocket Connected');
       pubSetConnectionStatus('connected');
     };
 
     ws.onclose = () => {
-      console.log('WebSocket Disconnected');
+      console.log('Publisher WebSocket Disconnected');
       pubSetConnectionStatus('disconnected');
     };
 
     ws.onerror = (error) => {
-      console.error('WebSocket Error:', error);
+      console.error('Publisher WebSocket Error:', error);
       pubSetConnectionStatus('error');
     };
 
@@ -42,9 +43,25 @@ function App() {
   useEffect(() => {
     const ws = new WebSocket('ws://127.0.0.1:8080/ws_sub');
 
+    ws.onopen = () => {
+      console.log('Subscriber WebSocket Connected');
+      subSetConnectionStatus('connected');
+      ws.send(JSON.stringify({ topic: '/test/testing' }));
+    };
+
     ws.onmessage = (e) => {
       const data = JSON.parse(e.data);
       console.log(data)
+    };
+
+    ws.onclose = () => {
+      console.log('Subscriber WebSocket Disconnected');
+      subSetConnectionStatus('disconnected');
+    };
+
+    ws.onerror = (error) => {
+      console.error('Subscriber WebSocket Error:', error);
+      subSetConnectionStatus('error');
     };
 
     setWebsocketSub(ws);
@@ -54,12 +71,6 @@ function App() {
     };
   }, []);
 
-  function test() {
-    const topic = "/test/testing";
-    if (websocketSub) {
-      websocketSub.send(JSON.stringify({ topic }));
-    }
-  }
 
   const sendJointAnglesToServer = () => {
     if (!websocketPub || pubConnectionStatus !== 'connected') {
@@ -98,11 +109,10 @@ function App() {
       </div>
       <div className='w-full h-1/2 px-6 flex flex-row space-x-4'>
         <ArmModel jvalue1={value1} jvalue2={value2} jvalue3={value3} jvalue4={value4} jvalue5={value5} jvalue6={value6}
-          websocketPub={websocketPub} connectionStatus={pubConnectionStatus} />
+          websocketPub={websocketPub} pubConnectionStatus={pubConnectionStatus} subConnectionStatus={subConnectionStatus}/>
         <div className='bg-[#333] w-full h-[600px] rounded-lg flex flex-col space-y-4 p-6'>
           <button
-            // onClick={sendJointAnglesToServer}
-            onClick={test}
+            onClick={sendJointAnglesToServer}
             className='bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 text-2xl rounded-lg transition duration-300'>
             Send Arm Orientation
           </button>
@@ -111,7 +121,15 @@ function App() {
               pubConnectionStatus === 'error' ? 'bg-red-500' : 'bg-gray-500'
               }`}></div>
             <span className="text-2xl text-white">
-              WebSocket: {pubConnectionStatus}
+              Publisher WebSocket: {pubConnectionStatus}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className={`w-3 h-3 rounded-full ${subConnectionStatus === 'connected' ? 'bg-green-500' :
+              subConnectionStatus === 'error' ? 'bg-red-500' : 'bg-gray-500'
+              }`}></div>
+            <span className="text-2xl text-white">
+              Subscriber WebSocket: {subConnectionStatus}
             </span>
           </div>
           <h1 className='text-white font-medium text-3xl mt-11'>Telemetry Data</h1>

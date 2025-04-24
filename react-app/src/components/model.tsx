@@ -337,7 +337,9 @@ export default function ArmModel({
         if (endEffectorType == "camera") {
             robotRef.current.joints[`endeff`].setJointValue(THREE.MathUtils.degToRad(jvalue6));
         }
-        robotRef.current.joints[`ef`].setJointValue(THREE.MathUtils.degToRad(jvalue6));
+        else{
+            robotRef.current.joints[`ef`].setJointValue(THREE.MathUtils.degToRad(jvalue6));
+        }
     }, [jvalue1, jvalue2, jvalue3, jvalue4, jvalue5, jvalue6]);
 
     return (

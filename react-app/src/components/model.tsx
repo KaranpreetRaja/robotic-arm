@@ -13,6 +13,7 @@ interface JointInterface {
     websocketPub: any;
     pubConnectionStatus: any;
     subConnectionStatus: any;
+    jointStates: any;
 }
 
 interface EndEffectorPose {
@@ -29,7 +30,8 @@ export default function ArmModel({
     jvalue6,
     websocketPub,
     pubConnectionStatus,
-    subConnectionStatus
+    subConnectionStatus,
+    jointStates
 }: JointInterface) {
     const containerRef = useRef<HTMLDivElement>(null);
     const robotRef = useRef<any>(null);
@@ -258,7 +260,7 @@ export default function ArmModel({
                 feedbackRobot.traverse((child: THREE.Object3D) => {
                     if (child instanceof THREE.Mesh) {
                         child.material = new THREE.MeshStandardMaterial({
-                            color: 0x88aaff,
+                            color: 0xff0000,
                             transparent: true,
                             opacity: 1
                         });

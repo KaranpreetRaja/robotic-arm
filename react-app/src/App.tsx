@@ -14,6 +14,7 @@ function App() {
   const [websocketSub, setWebsocketSub] = useState<WebSocket | null>(null);
   const [pubConnectionStatus, pubSetConnectionStatus] = useState<'disconnected' | 'connected' | 'error'>('disconnected');
   const [subConnectionStatus, subSetConnectionStatus] = useState<'disconnected' | 'connected' | 'error'>('disconnected');
+  const [jointStates, setJointStates] = useState<any>([]);
 
   useEffect(() => {
     const ws = new WebSocket('ws://127.0.0.1:8080/ws_publish');
@@ -46,13 +47,19 @@ function App() {
     ws.onopen = () => {
       console.log('Subscriber WebSocket Connected');
       subSetConnectionStatus('connected');
-      ws.send(JSON.stringify({ topic: '/test/testing' }));
+      ws.send(JSON.stringify({ topic: '/string/joint_states' }));
     };
 
     ws.onmessage = (e) => {
       const data = JSON.parse(e.data);
       console.log(data)
-    };
+
+      if (data.topic === "/string/joint_states") {
+        const jointData = JSON.parse(data.message);
+        const jointValues = Object.values(jointData);
+        setJointStates(jointValues);
+      };
+    }
 
     ws.onclose = () => {
       console.log('Subscriber WebSocket Disconnected');
@@ -70,6 +77,10 @@ function App() {
       ws.close();
     };
   }, []);
+
+  useEffect(() => {
+    console.log(jointStates)
+  }, [jointStates])
 
 
   const sendJointAnglesToServer = () => {
@@ -109,7 +120,9 @@ function App() {
       </div>
       <div className='w-full h-1/2 px-6 flex flex-row space-x-4'>
         <ArmModel jvalue1={value1} jvalue2={value2} jvalue3={value3} jvalue4={value4} jvalue5={value5} jvalue6={value6}
-          websocketPub={websocketPub} pubConnectionStatus={pubConnectionStatus} subConnectionStatus={subConnectionStatus}/>
+          websocketPub={websocketPub} pubConnectionStatus={pubConnectionStatus} subConnectionStatus={subConnectionStatus} 
+          jointStates={jointStates}
+          />
         <div className='bg-[#333] w-full h-[600px] rounded-lg flex flex-col space-y-4 p-6'>
           <button
             onClick={sendJointAnglesToServer}

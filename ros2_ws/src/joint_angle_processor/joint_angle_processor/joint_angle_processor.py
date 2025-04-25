@@ -26,6 +26,8 @@ class JointAngleProcessor(Node):
 
         command = Float64MultiArray()
         data = json.loads(msg.data)
+        self.get_logger().info(f"Message Recieved {data}")
+                
         orientation = data["orientation"]
 
         command.data = [
@@ -36,9 +38,15 @@ class JointAngleProcessor(Node):
             float(orientation["value5"]),
             float(orientation["value6"])
         ]
-        self.get_logger().info(f"Message Recieved {data}")
+        
+        if (bool(data["isCallbackEnabled"])):
+            self.karansFunction()
+
         self.get_logger().info(f"Command {command.data}")
         self.publisher_.publish(command)
+        
+    def karansFunction(self):
+        self.get_logger().info(f"Karan Function Called")
 
 def main(args=None):
     rclpy.init(args=args)

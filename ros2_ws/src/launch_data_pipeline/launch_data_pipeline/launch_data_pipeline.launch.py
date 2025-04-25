@@ -8,6 +8,11 @@ def generate_launch_description():
             executable='joint_angle_processor',
             name='screen'
         ),
+         Node(
+            package='joint_angle_processor',
+            executable='joint_angle_stringify',
+            name='screen'
+        ),
         Node(
             package='communication_server',
             executable='communication_server',

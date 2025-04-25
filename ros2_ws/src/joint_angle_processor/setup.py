@@ -21,6 +21,7 @@ setup(
     entry_points={
         'console_scripts': [
             "joint_angle_processor = joint_angle_processor.joint_angle_processor:main",
+            "joint_angle_stringify = joint_angle_processor.joint_angle_stringify:main"
         ],
     },
 )

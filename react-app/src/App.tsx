@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import ArmModel from './components/model'
-import * as THREE from 'three';
 import Form from 'react-bootstrap/Form';
+import ScratchBlocks from './components/scratch';
 
 function App() {
   const [value1, setValue1] = useState(0);
@@ -111,11 +111,8 @@ function App() {
   return (
     <div className='h-screen w-screen bg-base flex flex-col'>
       <div className='w-full h-1/2 flex flex-row px-6 py-4 space-x-4'>
-        <div className='w-1/2 h-full bg-white flex justify-center items-center'>
-          Camera 1
-        </div>
-        <div className='w-1/2 h-full bg-white flex justify-center items-center'>
-          Camera 2
+        <div className='w-full h-full'>
+          <ScratchBlocks websocketPub={websocketPub} pubConnectionStatus={pubConnectionStatus} />
         </div>
       </div>
       <div className='w-full h-1/2 px-6 flex flex-row space-x-4'>

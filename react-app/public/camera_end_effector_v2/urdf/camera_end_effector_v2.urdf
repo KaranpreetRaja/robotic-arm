@@ -1,0 +1,395 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- This URDF was automatically created by SolidWorks to URDF Exporter! Originally created by Stephen Brawner (brawner@gmail.com) 
+     Commit Version: 1.6.0-4-g7f85cfe  Build Version: 1.6.7995.38578
+     For more information, please see http://wiki.ros.org/sw_urdf_exporter -->
+<robot
+  name="camera_end_effector_v2">
+  <link
+    name="base_link">
+    <inertial>
+      <origin
+        xyz="-0.0387987092908609 0.0390369970391742 -5.67710647887378E-08"
+        rpy="0 0 0" />
+      <mass
+        value="4.03703382968674" />
+      <inertia
+        ixx="0.00474847813285011"
+        ixy="2.5451843630858E-06"
+        ixz="-6.99360908648324E-08"
+        iyy="0.0159793929849106"
+        iyz="4.4736579446005E-10"
+        izz="0.0121401207066325" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://camera_end_effector_v2/meshes/base_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://camera_end_effector_v2/meshes/base_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <link
+    name="j2">
+    <inertial>
+      <origin
+        xyz="-0.0212447962125669 4.82312181396935E-05 -0.105390345923698"
+        rpy="0 0 0" />
+      <mass
+        value="0.977314751959421" />
+      <inertia
+        ixx="0.000705624664164402"
+        ixy="-1.92139584847809E-07"
+        ixz="2.86777147302527E-06"
+        iyy="0.000519513395370273"
+        iyz="3.14623227227998E-07"
+        izz="0.000679886789996013" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://camera_end_effector_v2/meshes/j2.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://camera_end_effector_v2/meshes/j2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="j2"
+    type="revolute">
+    <origin
+      xyz="0 0 0"
+      rpy="3.1416 0 1.5708" />
+    <parent
+      link="base_link" />
+    <child
+      link="j2" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-1.57"
+      upper="1.57"
+      effort="50"
+      velocity="10" />
+  </joint>
+  <link
+    name="j3">
+    <inertial>
+      <origin
+        xyz="0.044980071416487 -5.35948514180058E-05 -0.128060536605172"
+        rpy="0 0 0" />
+      <mass
+        value="0.685177148843114" />
+      <inertia
+        ixx="0.00441405518789586"
+        ixy="-4.0772924022017E-08"
+        ixz="-1.4273703108297E-05"
+        iyy="0.00419104754809763"
+        iyz="-9.08788530341661E-07"
+        izz="0.000334095696256245" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://camera_end_effector_v2/meshes/j3.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://camera_end_effector_v2/meshes/j3.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="j3"
+    type="revolute">
+    <origin
+      xyz="0 0 -0.1385"
+      rpy="0 0 0" />
+    <parent
+      link="j2" />
+    <child
+      link="j3" />
+    <axis
+      xyz="1 0 0" />
+    <limit
+      lower="-1.57"
+      upper="1.57"
+      effort="50"
+      velocity="10" />
+  </joint>
+  <link
+    name="j4">
+    <inertial>
+      <origin
+        xyz="0.0162127600687066 -0.0350755946904497 1.97404980978311E-06"
+        rpy="0 0 0" />
+      <mass
+        value="0.233021484761836" />
+      <inertia
+        ixx="7.02674799345136E-05"
+        ixy="1.31649924403056E-09"
+        ixz="2.82915545204911E-14"
+        iyy="6.79387907617448E-05"
+        iyz="8.33234450666045E-14"
+        izz="6.50999842227108E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://camera_end_effector_v2/meshes/j4.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://camera_end_effector_v2/meshes/j4.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="j4"
+    type="revolute">
+    <origin
+      xyz="0 0 -0.322"
+      rpy="0 0 0" />
+    <parent
+      link="j3" />
+    <child
+      link="j4" />
+    <axis
+      xyz="1 0 0" />
+    <limit
+      lower="-1.57"
+      upper="1.57"
+      effort="50"
+      velocity="10" />
+  </joint>
+  <link
+    name="j5">
+    <inertial>
+      <origin
+        xyz="-0.000843996402465412 0.101806023547875 0.000279122515554786"
+        rpy="0 0 0" />
+      <mass
+        value="0.282589558912825" />
+      <inertia
+        ixx="0.000654988616952571"
+        ixy="1.93220591934381E-05"
+        ixz="-1.31514059496871E-06"
+        iyy="0.000177128963073579"
+        iyz="8.45323519862778E-07"
+        izz="0.000742965552308006" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://camera_end_effector_v2/meshes/j5.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://camera_end_effector_v2/meshes/j5.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="j5"
+    type="revolute">
+    <origin
+      xyz="0 0 0"
+      rpy="0 0 0" />
+    <parent
+      link="j4" />
+    <child
+      link="j5" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="-1.57"
+      upper="1.57"
+      effort="50"
+      velocity="10" />
+  </joint>
+  <link
+    name="j6">
+    <inertial>
+      <origin
+        xyz="-0.00030632848636733 -0.00933484349547609 -1.08036928580524E-05"
+        rpy="0 0 0" />
+      <mass
+        value="0.152159925236746" />
+      <inertia
+        ixx="3.71253243134052E-05"
+        ixy="-1.28772096124384E-06"
+        ixz="5.11904217059785E-09"
+        iyy="4.16737518057278E-05"
+        iyz="4.96996654743766E-08"
+        izz="4.20987856135388E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://camera_end_effector_v2/meshes/j6.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://camera_end_effector_v2/meshes/j6.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="j6"
+    type="revolute">
+    <origin
+      xyz="0 0.23275 0"
+      rpy="0 0 0" />
+    <parent
+      link="j5" />
+    <child
+      link="j6" />
+    <axis
+      xyz="1 0 0" />
+    <limit
+      lower="-1.57"
+      upper="1.57"
+      effort="50"
+      velocity="10" />
+  </joint>
+  <link
+    name="ef">
+    <inertial>
+      <origin
+        xyz="1.545698860585E-06 0.0568924023324697 -0.000791415492656433"
+        rpy="0 0 0" />
+      <mass
+        value="0.107977508673164" />
+      <inertia
+        ixx="6.86612595920387E-05"
+        ixy="2.95991972045628E-08"
+        ixz="-3.56197454253606E-07"
+        iyy="0.0001105363264339"
+        iyz="5.63376627819758E-07"
+        izz="0.000105652774356587" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://camera_end_effector_v2/meshes/ef.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://camera_end_effector_v2/meshes/ef.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="ef"
+    type="revolute">
+    <origin
+      xyz="0.001 0.02775 0"
+      rpy="0 0 0" />
+    <parent
+      link="j6" />
+    <child
+      link="ef" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="-1.57"
+      upper="1.57"
+      effort="50"
+      velocity="10" />
+  </joint>
+</robot>
